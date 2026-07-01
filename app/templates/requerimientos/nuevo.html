@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% block title %}Nuevo Requerimiento{% endblock %}
+{% block content %}
+<div class="page-header">
+    <h1>Nuevo Requerimiento</h1>
+    <a href="{{ url_for('requerimientos.lista') }}" class="btn btn-secondary">Volver</a>
+</div>
+<div class="card" style="max-width:700px">
+    <form method="post">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem">
+            <div class="form-group">
+                <label>Proyecto *</label>
+                <select name="proyecto_id" class="form-control" required>
+                    <option value="">— Seleccionar —</option>
+                    {% for p in proyectos %}
+                    <option value="{{ p.id }}" {% if proyecto_id == p.id %}selected{% endif %}>{{ p.nombre }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Identificador *</label>
+                <input type="text" name="identificador" class="form-control" placeholder="RF-001" required style="text-transform:uppercase">
+            </div>
+            <div class="form-group">
+                <label>Tipo *</label>
+                <select name="tipo" id="sel_tipo" class="form-control" required>
+                    <option value="">— Seleccionar —</option>
+                    <option value="funcional">Funcional</option>
+                    <option value="no_funcional">No Funcional</option>
+                </select>
+            </div>
+            <div class="form-group" id="g_cat" style="display:none">
+                <label>Categoría</label>
+                <select name="categoria" class="form-control">
+                    <option value="">— Seleccionar —</option>
+                    {% for c in categorias %}<option value="{{ c }}">{{ c }}</option>{% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Prioridad</label>
+                <select name="prioridad" class="form-control">
+                    <option value="alta">Alta</option>
+                    <option value="media" selected>Media</option>
+                    <option value="baja">Baja</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Estado</label>
+                <select name="estado" class="form-control">
+                    <option value="pendiente" selected>Pendiente</option>
+                    <option value="activo">Activo</option>
+                    <option value="completado">Completado</option>
+                    <option value="cancelado">Cancelado</option>
+                </select>
+            </div>
+        </div>
+        <div class="form-group">
+            <label>Descripción *</label>
+            <textarea name="descripcion" class="form-control" rows="4" required></textarea>
+        </div>
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">Crear requerimiento</button>
+            <a href="{{ url_for('requerimientos.lista') }}" class="btn btn-secondary">Cancelar</a>
+        </div>
+    </form>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+document.getElementById('sel_tipo').addEventListener('change', function(){
+    document.getElementById('g_cat').style.display = this.value === 'no_funcional' ? '' : 'none';
+});
+</script>
+{% endblock %}

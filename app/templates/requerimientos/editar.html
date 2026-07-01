@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block title %}Editar {{ req.identificador }}{% endblock %}
+{% block content %}
+<div class="page-header">
+    <h1>Editar: {{ req.identificador }}</h1>
+    <a href="{{ url_for('requerimientos.detalle', id=req.id) }}" class="btn btn-secondary">Volver</a>
+</div>
+<div class="card" style="max-width:700px">
+    <form method="post">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem">
+            <div class="form-group">
+                <label>Identificador</label>
+                <input type="text" name="identificador" class="form-control" value="{{ req.identificador }}" style="text-transform:uppercase">
+            </div>
+            <div class="form-group">
+                <label>Tipo</label>
+                <select name="tipo" id="sel_tipo" class="form-control">
+                    <option value="funcional" {% if req.tipo == 'funcional' %}selected{% endif %}>Funcional</option>
+                    <option value="no_funcional" {% if req.tipo == 'no_funcional' %}selected{% endif %}>No Funcional</option>
+                </select>
+            </div>
+            <div class="form-group" id="g_cat" {% if req.tipo != 'no_funcional' %}style="display:none"{% endif %}>
+                <label>Categoría</label>
+                <select name="categoria" class="form-control">
+                    {% for c in categorias %}<option value="{{ c }}" {% if req.categoria == c %}selected{% endif %}>{{ c }}</option>{% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Prioridad</label>
+                <select name="prioridad" class="form-control">
+                    {% for p in ['alta','media','baja'] %}
+                    <option value="{{ p }}" {% if req.prioridad == p %}selected{% endif %}>{{ p }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Estado</label>
+                <select name="estado" class="form-control">
+                    {% for e in ['pendiente','activo','completado','cancelado'] %}
+                    <option value="{{ e }}" {% if req.estado == e %}selected{% endif %}>{{ e }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+        <div class="form-group">
+            <label>Descripción *</label>
+            <textarea name="descripcion" class="form-control" rows="4" required>{{ req.descripcion }}</textarea>
+        </div>
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">Guardar</button>
+            <a href="{{ url_for('requerimientos.detalle', id=req.id) }}" class="btn btn-secondary">Cancelar</a>
+            <form method="post" action="{{ url_for('requerimientos.eliminar', id=req.id) }}" style="display:inline"
+                  onsubmit="return confirm('¿Eliminar?')">
+                <button type="submit" class="btn btn-danger">Eliminar</button>
+            </form>
+        </div>
+    </form>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+document.getElementById('sel_tipo').addEventListener('change', function(){
+    document.getElementById('g_cat').style.display = this.value === 'no_funcional' ? '' : 'none';
+});
+</script>
+{% endblock %}

@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}{{ req.identificador }}{% endblock %}
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>{{ req.identificador }}</h1>
+        <p style="color:#666;margin-top:.2rem">{{ req.proyecto.nombre }}</p>
+    </div>
+    <div style="display:flex;gap:.5rem">
+        <a href="{{ url_for('requerimientos.editar', id=req.id) }}" class="btn btn-secondary">Editar</a>
+    </div>
+</div>
+<div class="card">
+    <table style="max-width:500px">
+        <tr><th style="width:140px">Tipo</th><td>{{ req.tipo.replace('_',' ') }}</td></tr>
+        <tr><th>Prioridad</th><td>{{ req.prioridad }}</td></tr>
+        <tr><th>Estado</th><td>{{ req.estado }}</td></tr>
+        {% if req.categoria %}<tr><th>Categoría</th><td>{{ req.categoria }}</td></tr>{% endif %}
+        <tr><th>Creado</th><td>{{ req.fecha_creacion.strftime('%d/%m/%Y %H:%M') }}</td></tr>
+    </table>
+    <hr style="margin:1rem 0;border:none;border-top:1px solid #eee">
+    <strong>Descripción</strong>
+    <p style="margin-top:.4rem;line-height:1.6">{{ req.descripcion }}</p>
+</div>
+<div class="card">
+    <h2 style="margin-bottom:.75rem">Casos de Uso asociados</h2>
+    {% set casos = req.casos_uso.all() %}
+    {% if casos %}
+    <ul style="list-style:none;display:flex;flex-direction:column;gap:.4rem">
+        {% for cu in casos %}
+        <li><a href="{{ url_for('casos_uso.detalle', id=cu.id) }}">{{ cu.identificador }} — {{ cu.nombre }}</a></li>
+        {% endfor %}
+    </ul>
+    {% elif req.tipo == 'funcional' %}
+    <p style="color:#e65100">⚠ Requerimiento funcional sin caso de uso (cobertura incompleta).</p>
+    {% else %}
+    <p style="color:#999">No aplica para requerimientos no funcionales.</p>
+    {% endif %}
+</div>
+{% endblock %}

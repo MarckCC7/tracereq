@@ -1,7 +1,6 @@
 from datetime import datetime
 from app import db
 
-
 class Proyecto(db.Model):
     __tablename__ = 'proyectos'
     id = db.Column(db.Integer, primary_key=True)
@@ -100,7 +99,6 @@ class HistorialCambio(db.Model):
     valor_nuevo = db.Column(db.Text)
     descripcion = db.Column(db.String(255))
     fecha = db.Column(db.DateTime, default=datetime.utcnow)
-
 
 class Comentario(db.Model):
     __tablename__ = 'comentarios'
