@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block title %}Nueva Relación{% endblock %}
+{% block content %}
+<div class="page-header">
+    <h1>Nueva Relación de Trazabilidad</h1>
+    <a href="{{ url_for('trazabilidad.matriz') }}" class="btn btn-secondary">Volver</a>
+</div>
+<div class="card" style="max-width:700px">
+    <form method="post">
+        <div class="form-group">
+            <label>Proyecto *</label>
+            <select name="proyecto_id" id="sel_proyecto" class="form-control" required>
+                <option value="">— Seleccionar —</option>
+                {% for p in proyectos %}
+                <option value="{{ p.id }}" {% if proyecto_id == p.id %}selected{% endif %}>{{ p.nombre }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr auto 1fr;gap:1rem;align-items:end">
+            <div class="form-group">
+                <label>Requerimiento Origen *</label>
+                <select name="origen_id" id="sel_origen" class="form-control" required>
+                    <option value="">— Seleccionar —</option>
+                    {% for r in reqs %}<option value="{{ r.id }}">{{ r.identificador }} — {{ r.descripcion[:50] }}</option>{% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Tipo *</label>
+                <select name="tipo_relacion" class="form-control" required>
+                    <option value="">—</option>
+                    {% for t in tipos %}<option value="{{ t }}">{{ t.replace('_',' ') }}</option>{% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Requerimiento Destino *</label>
+                <select name="destino_id" id="sel_destino" class="form-control" required>
+                    <option value="">— Seleccionar —</option>
+                    {% for r in reqs %}<option value="{{ r.id }}">{{ r.identificador }} — {{ r.descripcion[:50] }}</option>{% endfor %}
+                </select>
+            </div>
+        </div>
+        <div class="form-group">
+            <label>Descripción</label>
+            <input type="text" name="descripcion" class="form-control" placeholder="Notas opcionales sobre esta relación...">
+        </div>
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">Crear relación</button>
+            <a href="{{ url_for('trazabilidad.matriz', proyecto_id=proyecto_id) }}" class="btn btn-secondary">Cancelar</a>
+        </div>
+    </form>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+document.getElementById('sel_proyecto').addEventListener('change', function() {
+    const pid = this.value;
+    if (!pid) return;
+    fetch('/casos-uso/reqs-por-proyecto?proyecto_id=' + pid)
+        .then(r => r.json())
+        .then(data => {
+            const opts = '<option value="">— Seleccionar —</option>' +
+                data.reqs.map(r => '<option value="' + r.id + '">' + r.identificador + ' — ' + r.descripcion + '</option>').join('');
+            document.getElementById('sel_origen').innerHTML = opts;
+            document.getElementById('sel_destino').innerHTML = opts;
+        });
+});
+</script>
+{% endblock %}

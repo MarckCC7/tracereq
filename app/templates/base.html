@@ -13,6 +13,7 @@
             <li><a href="{{ url_for('proyectos.lista') }}" {% if 'proyectos' in request.endpoint %}class="active"{% endif %}>Proyectos</a></li>
             <li><a href="{{ url_for('requerimientos.lista') }}" {% if 'requerimientos' in request.endpoint %}class="active"{% endif %}>Requerimientos</a></li>
             <li><a href="{{ url_for('casos_uso.lista') }}" {% if 'casos_uso' in request.endpoint %}class="active"{% endif %}>Casos de Uso</a></li>
+            <li><a href="{{ url_for('trazabilidad.matriz') }}" {% if 'trazabilidad' in request.endpoint %}class="active"{% endif %}>Trazabilidad</a></li>
         </ul>
     </nav>
     <div class="container">
