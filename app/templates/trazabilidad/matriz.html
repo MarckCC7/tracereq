@@ -48,7 +48,7 @@
             </thead>
             <tbody>
             {% for r in reqs %}
-                {% set cu_ids = matriz_data.get(r.id, set()) %}
+                {% set cu_ids = matriz_data.get(r.id, []) %}
                 <tr {% if r.tipo == 'funcional' and not cu_ids %}style="background:#fff8e1"{% endif %}>
                     <td><a href="{{ url_for('requerimientos.detalle', id=r.id) }}"><strong>{{ r.identificador }}</strong></a></td>
                     <td style="font-size:.8rem">{{ 'F' if r.tipo == 'funcional' else 'NF' }}</td>
