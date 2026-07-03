@@ -2,19 +2,22 @@
 {% block title %}Matriz de Trazabilidad{% endblock %}
 {% block content %}
 <div class="page-header">
-    <h1>Matriz de Trazabilidad</h1>
+    <h1><i class="fas fa-table"></i> Matriz de Trazabilidad</h1>
     {% if proyecto_id %}
-    <div style="display:flex;gap:.5rem">
-        <a href="{{ url_for('trazabilidad.nueva', proyecto_id=proyecto_id) }}" class="btn btn-primary">+ Nueva relación</a>
+    <div style="display:flex;gap:.5rem;flex-wrap:wrap">
+        <a href="{{ url_for('trazabilidad.grafo', proyecto_id=proyecto_id) }}" class="btn btn-secondary"><i class="fas fa-diagram-project"></i> Ver Grafo</a>
+        <a href="{{ url_for('trazabilidad.nueva', proyecto_id=proyecto_id) }}" class="btn btn-primary"><i class="fas fa-plus"></i> Nueva relación</a>
+        <a href="{{ url_for('exportar.exportar_csv', proyecto_id=proyecto_id) }}" class="btn btn-secondary">CSV</a>
+        <a href="{{ url_for('exportar.exportar_json', proyecto_id=proyecto_id) }}" class="btn btn-secondary">JSON</a>
     </div>
     {% endif %}
 </div>
-<div class="card" style="padding:.75rem 1rem;margin-bottom:1rem">
+<div class="card" style="padding:.75rem 1rem;margin-bottom:1rem;background:#f9f9f9">
     <form method="get" style="display:flex;gap:.75rem;align-items:flex-end">
         <div>
-            <label style="display:block;font-size:.8rem;font-weight:600;margin-bottom:.2rem">Proyecto</label>
+            <label style="display:block;font-size:.78rem;font-weight:600;margin-bottom:.2rem">Proyecto</label>
             <select name="proyecto_id" class="form-control" style="width:auto" onchange="this.form.submit()">
-                <option value="">- Seleccionar -</option>
+                <option value="">— Seleccionar —</option>
                 {% for p in proyectos %}
                 <option value="{{ p.id }}" {% if proyecto_id == p.id %}selected{% endif %}>{{ p.nombre }}</option>
                 {% endfor %}
@@ -22,57 +25,47 @@
         </div>
     </form>
 </div>
-
 {% if proyecto_id %}
     {% if contradicciones %}
-    <div class="alert alert-danger">
-        <strong>⚠ Contradicciones detectadas:</strong>
-        {% for c in contradicciones %}
-        {{ c.origen.identificador }} - {{ c.destino.identificador }}{% if not loop.last %},{% endif %}
-        {% endfor %}
+    <div class="alert alert-danger"><strong><i class="fas fa-circle-exclamation"></i> Contradicciones detectadas:</strong>
+        {% for c in contradicciones %} {{ c.origen.identificador }} ↔ {{ c.destino.identificador }}{% if not loop.last %},{% endif %}{% endfor %}
     </div>
     {% endif %}
-
     <div class="card">
-        <h2 style="margin-bottom:.75rem">Requerimientos - Casos de Uso</h2>
+        <h2 style="margin-bottom:.75rem">Requerimientos ↔ Casos de Uso</h2>
         {% if reqs and casos %}
         <div style="overflow-x:auto">
         <table>
             <thead>
                 <tr>
-                    <th>Requerimiento</th>
-                    <th>Tipo</th>
+                    <th>Requerimiento</th><th>Tipo</th>
                     {% for cu in casos %}<th style="text-align:center;font-size:.75rem">{{ cu.identificador }}</th>{% endfor %}
                     <th>Cobertura</th>
                 </tr>
             </thead>
             <tbody>
             {% for r in reqs %}
-                {% set cu_ids = matriz_data.get(r.id, []) %}
+                {% set cu_ids = matriz_data.get(r.id, set()) %}
                 <tr {% if r.tipo == 'funcional' and not cu_ids %}style="background:#fff8e1"{% endif %}>
                     <td><a href="{{ url_for('requerimientos.detalle', id=r.id) }}"><strong>{{ r.identificador }}</strong></a></td>
                     <td style="font-size:.8rem">{{ 'F' if r.tipo == 'funcional' else 'NF' }}</td>
                     {% for cu in casos %}
-                    <td style="text-align:center;color:#2e7d32">{% if cu.id in cu_ids %}✓{% endif %}</td>
+                    <td style="text-align:center;color:#2e7d32;font-weight:600">{% if cu.id in cu_ids %}✓{% endif %}</td>
                     {% endfor %}
                     <td>
                         {% if r.tipo == 'funcional' %}
-                            {% if cu_ids %}<span style="color:#2e7d32">{{ cu_ids|length }} CU</span>
-                            {% else %}<span style="color:#c62828">Sin CU</span>{% endif %}
-                        {% else %}<span style="color:#999">-</span>{% endif %}
+                            {% if cu_ids %}<span style="color:#2e7d32;font-size:.85rem">{{ cu_ids|length }} CU</span>
+                            {% else %}<span style="color:#c62828;font-size:.85rem">Sin CU</span>{% endif %}
+                        {% else %}<span style="color:#aaa;font-size:.85rem">—</span>{% endif %}
                     </td>
                 </tr>
             {% endfor %}
             </tbody>
         </table>
         </div>
-        {% elif not reqs %}
-        <p style="color:#999">No hay requerimientos en este proyecto.</p>
-        {% else %}
-        <p style="color:#999">No hay casos de uso en este proyecto.</p>
-        {% endif %}
+        {% elif not reqs %}<p style="color:#999">Sin requerimientos.</p>
+        {% else %}<p style="color:#999">Sin casos de uso.</p>{% endif %}
     </div>
-
     <div class="card">
         <h2 style="margin-bottom:.75rem">Relaciones entre Requerimientos</h2>
         {% if relaciones_traz %}
@@ -82,12 +75,14 @@
             {% for rel in relaciones_traz %}
             <tr {% if rel.tipo_relacion == 'contradice' %}style="background:#ffebee"{% endif %}>
                 <td><a href="{{ url_for('requerimientos.detalle', id=rel.requerimiento_origen_id) }}">{{ rel.origen.identificador }}</a></td>
-                <td><span style="font-size:.8rem;padding:.2rem .4rem;border-radius:4px;background:#e3f2fd">{{ rel.tipo_relacion.replace('_',' ') }}</span></td>
+                <td style="font-size:.8rem;padding:.4rem 1rem">
+                    <span style="background:#e3f2fd;padding:.2rem .4rem;border-radius:4px">{{ rel.tipo_relacion.replace('_',' ') }}</span>
+                </td>
                 <td><a href="{{ url_for('requerimientos.detalle', id=rel.requerimiento_destino_id) }}">{{ rel.destino.identificador }}</a></td>
-                <td style="color:#666;font-size:.875rem">{{ rel.descripcion or '-' }}</td>
+                <td style="color:#666;font-size:.875rem">{{ rel.descripcion or '—' }}</td>
                 <td>
                     <form method="post" action="{{ url_for('trazabilidad.eliminar', id=rel.id) }}" style="display:inline"
-                          onsubmit="return confirm('¿Eliminar relación?')">
+                          onsubmit="return confirm('¿Eliminar?')">
                         <button type="submit" class="btn btn-sm btn-danger">Eliminar</button>
                     </form>
                 </td>
@@ -96,11 +91,10 @@
             </tbody>
         </table>
         {% else %}
-        <p style="color:#999">Sin relaciones definidas. <a href="{{ url_for('trazabilidad.nueva', proyecto_id=proyecto_id) }}">Agregar</a></p>
+        <p style="color:#999">Sin relaciones. <a href="{{ url_for('trazabilidad.nueva', proyecto_id=proyecto_id) }}">Agregar</a></p>
         {% endif %}
     </div>
 {% else %}
 <div class="empty-state"><p>Selecciona un proyecto para ver la matriz de trazabilidad.</p></div>
 {% endif %}
 {% endblock %}
-
