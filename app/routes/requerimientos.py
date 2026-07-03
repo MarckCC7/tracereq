@@ -1,7 +1,7 @@
 from datetime import datetime
 from flask import Blueprint, render_template, request, redirect, url_for, flash
 from app import db
-from app.models import Requerimiento, Proyecto, HistorialCambio
+from app.models import Requerimiento, Proyecto, HistorialCambio, Comentario
 
 bp_reqs = Blueprint('requerimientos', __name__)
 
@@ -23,7 +23,6 @@ def lista():
     categoria = request.args.get('categoria', '')
     busqueda = request.args.get('q', '').strip()
     proyectos = Proyecto.query.order_by(Proyecto.nombre).all()
-
     query = Requerimiento.query
     if proyecto_id: query = query.filter_by(proyecto_id=proyecto_id)
     if estado:      query = query.filter_by(estado=estado)
@@ -31,10 +30,8 @@ def lista():
     if tipo:        query = query.filter_by(tipo=tipo)
     if categoria:   query = query.filter_by(categoria=categoria)
     if busqueda:
-        query = query.filter(db.or_(
-            Requerimiento.identificador.ilike(f'%{busqueda}%'),
-            Requerimiento.descripcion.ilike(f'%{busqueda}%')))
-
+        query = query.filter(db.or_(Requerimiento.identificador.ilike(f'%{busqueda}%'),
+                                    Requerimiento.descripcion.ilike(f'%{busqueda}%')))
     reqs = query.order_by(Requerimiento.identificador).all()
     filtros = {'estado': estado, 'prioridad': prioridad, 'tipo': tipo,
                'categoria': categoria, 'q': busqueda, 'proyecto_id': proyecto_id}
@@ -77,7 +74,11 @@ def nuevo():
 def detalle(id):
     req = Requerimiento.query.get_or_404(id)
     historial = req.historial.order_by(HistorialCambio.fecha.desc()).all()
-    return render_template('requerimientos/detalle.html', req=req, historial=historial, comentarios=[])
+    comentarios = req.comentarios.order_by(Comentario.fecha_creacion.asc()).all()
+    relaciones_orig = req.relaciones_origen.all()
+    relaciones_dest = req.relaciones_destino.all()
+    return render_template('requerimientos/detalle.html', req=req, historial=historial,
+                           comentarios=comentarios, relaciones_orig=relaciones_orig, relaciones_dest=relaciones_dest)
 
 @bp_reqs.route('/<int:id>/editar', methods=['GET', 'POST'])
 def editar(id):
@@ -107,6 +108,17 @@ def eliminar(id):
     db.session.commit()
     flash(f'Requerimiento {ident} eliminado.', 'info')
     return redirect(url_for('proyectos.detalle', id=proyecto_id))
+
+@bp_reqs.route('/<int:id>/comentar', methods=['POST'])
+def comentar(id):
+    req = Requerimiento.query.get_or_404(id)
+    texto = request.form.get('texto', '').strip()
+    autor = request.form.get('autor', 'Anónimo').strip() or 'Anónimo'
+    if texto:
+        db.session.add(Comentario(requerimiento_id=id, texto=texto, autor=autor))
+        db.session.commit()
+        flash('Comentario agregado.', 'success')
+    return redirect(url_for('requerimientos.detalle', id=id))
 
 @bp_reqs.route('/sin-cobertura')
 def sin_cobertura():
