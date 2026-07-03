@@ -11,7 +11,7 @@
             <div class="form-group">
                 <label>Proyecto *</label>
                 <select name="proyecto_id" class="form-control" required>
-                    <option value="">— Seleccionar —</option>
+                    <option value="">- Seleccionar -</option>
                     {% for p in proyectos %}
                     <option value="{{ p.id }}" {% if proyecto_id == p.id %}selected{% endif %}>{{ p.nombre }}</option>
                     {% endfor %}
@@ -24,7 +24,7 @@
             <div class="form-group">
                 <label>Tipo *</label>
                 <select name="tipo" id="sel_tipo" class="form-control" required>
-                    <option value="">— Seleccionar —</option>
+                    <option value="">- Seleccionar -</option>
                     <option value="funcional">Funcional</option>
                     <option value="no_funcional">No Funcional</option>
                 </select>
@@ -32,7 +32,7 @@
             <div class="form-group" id="g_cat" style="display:none">
                 <label>Categoría</label>
                 <select name="categoria" class="form-control">
-                    <option value="">— Seleccionar —</option>
+                    <option value="">- Seleccionar -</option>
                     {% for c in categorias %}<option value="{{ c }}">{{ c }}</option>{% endfor %}
                 </select>
             </div>

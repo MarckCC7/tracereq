@@ -3,7 +3,7 @@
 {% block content %}
 <div class="page-header">
     <div>
-        <h1>{{ cu.identificador }} — {{ cu.nombre }}</h1>
+        <h1>{{ cu.identificador }} - {{ cu.nombre }}</h1>
         <p style="color:#666;margin-top:.2rem">{{ cu.proyecto.nombre }}</p>
     </div>
     <div style="display:flex;gap:.5rem">
@@ -16,7 +16,7 @@
 </div>
 <div class="card">
     <table style="max-width:400px">
-        <tr><th style="width:120px">Actor</th><td>{{ cu.actor or '—' }}</td></tr>
+        <tr><th style="width:120px">Actor</th><td>{{ cu.actor or '-' }}</td></tr>
         <tr><th>Creado</th><td>{{ cu.fecha_creacion.strftime('%d/%m/%Y') }}</td></tr>
     </table>
     {% if cu.descripcion %}
@@ -30,7 +30,7 @@
     {% if reqs %}
     <ul style="list-style:none;display:flex;flex-direction:column;gap:.4rem">
         {% for r in reqs %}
-        <li><a href="{{ url_for('requerimientos.detalle', id=r.id) }}">{{ r.identificador }}</a> — {{ r.descripcion[:60] }}</li>
+        <li><a href="{{ url_for('requerimientos.detalle', id=r.id) }}">{{ r.identificador }}</a> - {{ r.descripcion[:60] }}</li>
         {% endfor %}
     </ul>
     {% else %}

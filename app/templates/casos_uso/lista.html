@@ -29,7 +29,7 @@
             <td><strong>{{ cu.identificador }}</strong></td>
             <td><a href="{{ url_for('casos_uso.detalle', id=cu.id) }}">{{ cu.nombre }}</a></td>
             <td>{{ cu.proyecto.nombre }}</td>
-            <td>{{ cu.actor or '—' }}</td>
+            <td>{{ cu.actor or '-' }}</td>
             <td>{{ cu.requerimientos.count() }}</td>
             <td>
                 <a href="{{ url_for('casos_uso.editar', id=cu.id) }}" class="btn btn-sm btn-secondary">Editar</a>

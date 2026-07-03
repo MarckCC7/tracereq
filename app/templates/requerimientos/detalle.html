@@ -31,7 +31,7 @@
         {% set casos = req.casos_uso.all() %}
         {% if casos %}
         <ul style="list-style:none;display:flex;flex-direction:column;gap:.4rem">
-            {% for cu in casos %}<li><a href="{{ url_for('casos_uso.detalle', id=cu.id) }}">{{ cu.identificador }} — {{ cu.nombre }}</a></li>{% endfor %}
+            {% for cu in casos %}<li><a href="{{ url_for('casos_uso.detalle', id=cu.id) }}">{{ cu.identificador }} - {{ cu.nombre }}</a></li>{% endfor %}
         </ul>
         {% elif req.tipo == 'funcional' %}
         <p style="color:#e65100"><i class="fas fa-triangle-exclamation"></i> Sin caso de uso (cobertura incompleta).</p>
@@ -50,7 +50,7 @@
             <td><strong>{{ req.identificador }}</strong></td>
             <td style="font-size:.8rem">{{ rel.tipo_relacion.replace('_',' ') }}</td>
             <td><a href="{{ url_for('requerimientos.detalle', id=rel.requerimiento_destino_id) }}">{{ rel.destino.identificador }}</a></td>
-            <td style="color:#666;font-size:.875rem">{{ rel.descripcion or '—' }}</td>
+            <td style="color:#666;font-size:.875rem">{{ rel.descripcion or '-' }}</td>
             <td>
                 <form method="post" action="{{ url_for('trazabilidad.eliminar', id=rel.id) }}" style="display:inline"
                       onsubmit="return confirm('¿Eliminar relación?')">
@@ -64,7 +64,7 @@
             <td><a href="{{ url_for('requerimientos.detalle', id=rel.requerimiento_origen_id) }}">{{ rel.origen.identificador }}</a></td>
             <td style="font-size:.8rem">{{ rel.tipo_relacion.replace('_',' ') }}</td>
             <td><strong>{{ req.identificador }}</strong></td>
-            <td style="color:#666;font-size:.875rem">{{ rel.descripcion or '—' }}</td>
+            <td style="color:#666;font-size:.875rem">{{ rel.descripcion or '-' }}</td>
             <td></td>
         </tr>
         {% endfor %}
@@ -85,9 +85,9 @@
         <tr>
             <td style="color:#666;font-size:.8rem;white-space:nowrap">{{ h.fecha.strftime('%d/%m/%Y %H:%M') }}</td>
             <td><code style="font-size:.8rem">{{ h.campo_modificado }}</code></td>
-            <td style="color:#666;font-size:.875rem">{{ h.valor_anterior or '—' }}</td>
-            <td style="font-size:.875rem">{{ h.valor_nuevo or '—' }}</td>
-            <td style="color:#666;font-size:.875rem">{{ h.descripcion or '—' }}</td>
+            <td style="color:#666;font-size:.875rem">{{ h.valor_anterior or '-' }}</td>
+            <td style="font-size:.875rem">{{ h.valor_nuevo or '-' }}</td>
+            <td style="color:#666;font-size:.875rem">{{ h.descripcion or '-' }}</td>
         </tr>
         {% endfor %}
         </tbody>

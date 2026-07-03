@@ -26,7 +26,7 @@
                 {% for r in reqs_proy %}
                 <label style="display:flex;gap:.5rem;padding:.3rem;font-size:.875rem;cursor:pointer">
                     <input type="checkbox" name="requerimientos" value="{{ r.id }}" {% if r.id in reqs_sel %}checked{% endif %}>
-                    <span><strong>{{ r.identificador }}</strong> — {{ r.descripcion[:60] }}</span>
+                    <span><strong>{{ r.identificador }}</strong> - {{ r.descripcion[:60] }}</span>
                 </label>
                 {% else %}
                 <p style="color:#999;font-size:.875rem;padding:.3rem">Sin requerimientos funcionales.</p>

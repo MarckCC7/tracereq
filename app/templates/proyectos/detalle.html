@@ -49,7 +49,7 @@
         <tr>
             <td><strong>{{ cu.identificador }}</strong></td>
             <td><a href="{{ url_for('casos_uso.detalle', id=cu.id) }}">{{ cu.nombre }}</a></td>
-            <td>{{ cu.actor or '—' }}</td>
+            <td>{{ cu.actor or '-' }}</td>
         </tr>
         {% endfor %}
         </tbody>

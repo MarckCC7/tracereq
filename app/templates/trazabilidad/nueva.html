@@ -10,7 +10,7 @@
         <div class="form-group">
             <label>Proyecto *</label>
             <select name="proyecto_id" id="sel_proyecto" class="form-control" required>
-                <option value="">— Seleccionar —</option>
+                <option value="">- Seleccionar -</option>
                 {% for p in proyectos %}
                 <option value="{{ p.id }}" {% if proyecto_id == p.id %}selected{% endif %}>{{ p.nombre }}</option>
                 {% endfor %}
@@ -20,22 +20,22 @@
             <div class="form-group">
                 <label>Requerimiento Origen *</label>
                 <select name="origen_id" id="sel_origen" class="form-control" required>
-                    <option value="">— Seleccionar —</option>
-                    {% for r in reqs %}<option value="{{ r.id }}">{{ r.identificador }} — {{ r.descripcion[:50] }}</option>{% endfor %}
+                    <option value="">- Seleccionar -</option>
+                    {% for r in reqs %}<option value="{{ r.id }}">{{ r.identificador }} - {{ r.descripcion[:50] }}</option>{% endfor %}
                 </select>
             </div>
             <div class="form-group">
                 <label>Tipo *</label>
                 <select name="tipo_relacion" class="form-control" required>
-                    <option value="">—</option>
+                    <option value="">-</option>
                     {% for t in tipos %}<option value="{{ t }}">{{ t.replace('_',' ') }}</option>{% endfor %}
                 </select>
             </div>
             <div class="form-group">
                 <label>Requerimiento Destino *</label>
                 <select name="destino_id" id="sel_destino" class="form-control" required>
-                    <option value="">— Seleccionar —</option>
-                    {% for r in reqs %}<option value="{{ r.id }}">{{ r.identificador }} — {{ r.descripcion[:50] }}</option>{% endfor %}
+                    <option value="">- Seleccionar -</option>
+                    {% for r in reqs %}<option value="{{ r.id }}">{{ r.identificador }} - {{ r.descripcion[:50] }}</option>{% endfor %}
                 </select>
             </div>
         </div>
@@ -58,8 +58,8 @@ document.getElementById('sel_proyecto').addEventListener('change', function() {
     fetch('/casos-uso/reqs-por-proyecto?proyecto_id=' + pid)
         .then(r => r.json())
         .then(data => {
-            const opts = '<option value="">— Seleccionar —</option>' +
-                data.reqs.map(r => '<option value="' + r.id + '">' + r.identificador + ' — ' + r.descripcion + '</option>').join('');
+            const opts = '<option value="">- Seleccionar -</option>' +
+                data.reqs.map(r => '<option value="' + r.id + '">' + r.identificador + ' - ' + r.descripcion + '</option>').join('');
             document.getElementById('sel_origen').innerHTML = opts;
             document.getElementById('sel_destino').innerHTML = opts;
         });
