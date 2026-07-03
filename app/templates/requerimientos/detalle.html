@@ -8,33 +8,59 @@
     </div>
     <div style="display:flex;gap:.5rem">
         <a href="{{ url_for('requerimientos.editar', id=req.id) }}" class="btn btn-secondary">Editar</a>
+        <a href="{{ url_for('trazabilidad.nueva', proyecto_id=req.proyecto_id) }}" class="btn btn-secondary">+ Relación</a>
     </div>
 </div>
-<div class="card">
-    <table style="max-width:500px">
-        <tr><th style="width:140px">Tipo</th><td>{{ req.tipo.replace('_',' ') }}</td></tr>
-        <tr><th>Prioridad</th><td>{{ req.prioridad }}</td></tr>
-        <tr><th>Estado</th><td>{{ req.estado }}</td></tr>
-        {% if req.categoria %}<tr><th>Categoría</th><td>{{ req.categoria }}</td></tr>{% endif %}
-        <tr><th>Creado</th><td>{{ req.fecha_creacion.strftime('%d/%m/%Y %H:%M') }}</td></tr>
-    </table>
-    <hr style="margin:1rem 0;border:none;border-top:1px solid #eee">
-    <strong>Descripción</strong>
-    <p style="margin-top:.4rem;line-height:1.6">{{ req.descripcion }}</p>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem">
+    <div class="card">
+        <table>
+            <tr><th style="width:130px">Tipo</th><td>{{ req.tipo.replace('_',' ') }}</td></tr>
+            <tr><th>Prioridad</th><td>{{ req.prioridad }}</td></tr>
+            <tr><th>Estado</th><td>{{ req.estado }}</td></tr>
+            {% if req.categoria %}<tr><th>Categoría</th><td>{{ req.categoria }}</td></tr>{% endif %}
+            <tr><th>Creado</th><td>{{ req.fecha_creacion.strftime('%d/%m/%Y %H:%M') }}</td></tr>
+            <tr><th>Actualizado</th><td>{{ req.fecha_actualizacion.strftime('%d/%m/%Y %H:%M') }}</td></tr>
+        </table>
+        <hr style="margin:1rem 0;border:none;border-top:1px solid #eee">
+        <strong>Descripción</strong>
+        <p style="margin-top:.4rem;line-height:1.6">{{ req.descripcion }}</p>
+    </div>
+    <div class="card">
+        <h2 style="margin-bottom:.75rem">Casos de Uso</h2>
+        {% set casos = req.casos_uso.all() %}
+        {% if casos %}
+        <ul style="list-style:none;display:flex;flex-direction:column;gap:.4rem">
+            {% for cu in casos %}
+            <li><a href="{{ url_for('casos_uso.detalle', id=cu.id) }}">{{ cu.identificador }} — {{ cu.nombre }}</a></li>
+            {% endfor %}
+        </ul>
+        {% elif req.tipo == 'funcional' %}
+        <p style="color:#e65100">⚠ Sin caso de uso asociado (cobertura incompleta).</p>
+        {% else %}
+        <p style="color:#999">No aplica para requerimientos no funcionales.</p>
+        {% endif %}
+    </div>
 </div>
+
 <div class="card">
-    <h2 style="margin-bottom:.75rem">Casos de Uso asociados</h2>
-    {% set casos = req.casos_uso.all() %}
-    {% if casos %}
-    <ul style="list-style:none;display:flex;flex-direction:column;gap:.4rem">
-        {% for cu in casos %}
-        <li><a href="{{ url_for('casos_uso.detalle', id=cu.id) }}">{{ cu.identificador }} — {{ cu.nombre }}</a></li>
+    <h2 style="margin-bottom:.75rem">Historial de Cambios</h2>
+    {% if historial %}
+    <table>
+        <thead><tr><th>Fecha</th><th>Campo</th><th>Anterior</th><th>Nuevo</th><th>Descripción</th></tr></thead>
+        <tbody>
+        {% for h in historial %}
+        <tr>
+            <td style="color:#666;font-size:.8rem;white-space:nowrap">{{ h.fecha.strftime('%d/%m/%Y %H:%M') }}</td>
+            <td><code style="font-size:.8rem">{{ h.campo_modificado }}</code></td>
+            <td style="color:#666;font-size:.875rem">{{ h.valor_anterior or '—' }}</td>
+            <td style="font-size:.875rem">{{ h.valor_nuevo or '—' }}</td>
+            <td style="color:#666;font-size:.875rem">{{ h.descripcion or '—' }}</td>
+        </tr>
         {% endfor %}
-    </ul>
-    {% elif req.tipo == 'funcional' %}
-    <p style="color:#e65100">⚠ Requerimiento funcional sin caso de uso (cobertura incompleta).</p>
+        </tbody>
+    </table>
     {% else %}
-    <p style="color:#999">No aplica para requerimientos no funcionales.</p>
+    <p style="color:#999">Sin historial de cambios.</p>
     {% endif %}
 </div>
 {% endblock %}

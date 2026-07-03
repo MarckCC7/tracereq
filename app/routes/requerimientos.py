@@ -1,10 +1,18 @@
+from datetime import datetime
 from flask import Blueprint, render_template, request, redirect, url_for, flash
 from app import db
-from app.models import Requerimiento, Proyecto
+from app.models import Requerimiento, Proyecto, HistorialCambio
 
 bp_reqs = Blueprint('requerimientos', __name__)
 
 CATEGORIAS_NF = ['rendimiento', 'seguridad', 'usabilidad', 'confiabilidad', 'mantenibilidad', 'escalabilidad', 'otro']
+
+def _registrar_cambio(req_id, campo, anterior, nuevo, desc=None):
+    if str(anterior or '') != str(nuevo or ''):
+        db.session.add(HistorialCambio(
+            requerimiento_id=req_id, campo_modificado=campo,
+            valor_anterior=str(anterior or ''), valor_nuevo=str(nuevo or ''),
+            descripcion=desc or f'Campo {campo} modificado'))
 
 @bp_reqs.route('/')
 def lista():
@@ -33,12 +41,15 @@ def nuevo():
             return render_template('requerimientos/nuevo.html', proyectos=proyectos,
                                    proyecto_id=proyecto_id, categorias=CATEGORIAS_NF)
         if Requerimiento.query.filter_by(proyecto_id=proyecto_id, identificador=identificador).first():
-            flash(f'Ya existe el identificador {identificador} en este proyecto.', 'danger')
+            flash(f'Ya existe el identificador {identificador}.', 'danger')
             return render_template('requerimientos/nuevo.html', proyectos=proyectos,
                                    proyecto_id=proyecto_id, categorias=CATEGORIAS_NF)
         req = Requerimiento(proyecto_id=proyecto_id, identificador=identificador, tipo=tipo,
                             descripcion=descripcion, prioridad=prioridad, estado=estado, categoria=categoria)
         db.session.add(req)
+        db.session.flush()
+        db.session.add(HistorialCambio(requerimiento_id=req.id, campo_modificado='creacion',
+                                       descripcion='Requerimiento creado', valor_anterior='', valor_nuevo=identificador))
         db.session.commit()
         flash(f'Requerimiento {identificador} creado.', 'success')
         return redirect(url_for('requerimientos.detalle', id=req.id))
@@ -48,19 +59,27 @@ def nuevo():
 @bp_reqs.route('/<int:id>')
 def detalle(id):
     req = Requerimiento.query.get_or_404(id)
-    return render_template('requerimientos/detalle.html', req=req, historial=[], comentarios=[])
+    historial = req.historial.order_by(HistorialCambio.fecha.desc()).all()
+    return render_template('requerimientos/detalle.html', req=req, historial=historial, comentarios=[])
 
 @bp_reqs.route('/<int:id>/editar', methods=['GET', 'POST'])
 def editar(id):
     req = Requerimiento.query.get_or_404(id)
     proyectos = Proyecto.query.all()
     if request.method == 'POST':
-        req.identificador = request.form.get('identificador', '').strip().upper()
-        req.tipo = request.form.get('tipo', '')
-        req.descripcion = request.form.get('descripcion', '').strip()
-        req.prioridad = request.form.get('prioridad', '')
-        req.estado = request.form.get('estado', '')
+        desc_cambio = request.form.get('descripcion_cambio', '').strip() or 'Actualización'
+        campos = {
+            'identificador': request.form.get('identificador', '').strip().upper(),
+            'tipo': request.form.get('tipo', ''),
+            'descripcion': request.form.get('descripcion', '').strip(),
+            'prioridad': request.form.get('prioridad', ''),
+            'estado': request.form.get('estado', ''),
+        }
+        for campo, nuevo_val in campos.items():
+            _registrar_cambio(req.id, campo, getattr(req, campo), nuevo_val, desc_cambio)
+            setattr(req, campo, nuevo_val)
         req.categoria = request.form.get('categoria') if req.tipo == 'no_funcional' else None
+        req.fecha_actualizacion = datetime.utcnow()
         db.session.commit()
         flash('Requerimiento actualizado.', 'success')
         return redirect(url_for('requerimientos.detalle', id=id))
@@ -80,11 +99,9 @@ def eliminar(id):
 def sin_cobertura():
     proyecto_id = request.args.get('proyecto_id', type=int)
     proyectos = Proyecto.query.order_by(Proyecto.nombre).all()
-    query = Requerimiento.query.filter(
-        Requerimiento.tipo == 'funcional',
-        ~Requerimiento.casos_uso.any()
-    )
+    query = Requerimiento.query.filter(Requerimiento.tipo == 'funcional', ~Requerimiento.casos_uso.any())
     if proyecto_id:
         query = query.filter_by(proyecto_id=proyecto_id)
     reqs = query.order_by(Requerimiento.identificador).all()
     return render_template('requerimientos/sin_cobertura.html', reqs=reqs, proyectos=proyectos, proyecto_id=proyecto_id)
+
