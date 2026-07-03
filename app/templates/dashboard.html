@@ -96,9 +96,9 @@
 {% block scripts %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script>
-const cE={'pendiente':'#f6c23e','activo':'#4e73df','completado':'#1cc88a','cancelado':'#858796'};
-const cP={'alta':'#e74a3b','media':'#f6c23e','baja':'#1cc88a'};
-const cT={'funcional':'#4e73df','no_funcional':'#1cc88a'};
+{% set cE = {'pendiente':'#f6c23e','activo':'#4e73df','completado':'#1cc88a','cancelado':'#858796'} %}
+{% set cP = {'alta':'#e74a3b','media':'#f6c23e','baja':'#1cc88a'} %}
+{% set cT = {'funcional':'#4e73df','no_funcional':'#1cc88a'} %}
 {% if estados %}
 new Chart(document.getElementById('chartEstados'),{type:'doughnut',data:{
     labels:[{% for e,c in estados %}'{{e}}'{% if not loop.last %},{% endif %}{% endfor %}],
