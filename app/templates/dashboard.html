@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — TraceReq{% endblock %}
+{% block content %}
+<div class="page-header">
+    <div><h1>Dashboard</h1><p style="color:#666;margin-top:.25rem">Resumen general del sistema</p></div>
+    <a href="{{ url_for('proyectos.nuevo') }}" class="btn btn-primary">+ Nuevo proyecto</a>
+</div>
+
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:1rem;margin-bottom:1.25rem">
+    <div class="metric-card" style="background:linear-gradient(135deg,#1a237e,#283593)">
+        <div style="font-size:1.9rem;font-weight:700;color:#fff">{{ total_proyectos }}</div>
+        <div style="color:rgba(255,255,255,.8);font-size:.85rem">Proyectos</div>
+    </div>
+    <div class="metric-card" style="background:linear-gradient(135deg,#1b5e20,#2e7d32)">
+        <div style="font-size:1.9rem;font-weight:700;color:#fff">{{ total_reqs }}</div>
+        <div style="color:rgba(255,255,255,.8);font-size:.85rem">Requerimientos</div>
+    </div>
+    <div class="metric-card" style="background:linear-gradient(135deg,#4a148c,#6a1b9a)">
+        <div style="font-size:1.9rem;font-weight:700;color:#fff">{{ total_cu }}</div>
+        <div style="color:rgba(255,255,255,.8);font-size:.85rem">Casos de Uso</div>
+    </div>
+    <div class="metric-card" style="background:linear-gradient(135deg,#e65100,#ef6c00)">
+        <div style="font-size:1.9rem;font-weight:700;color:#fff">{{ total_relaciones }}</div>
+        <div style="color:rgba(255,255,255,.8);font-size:.85rem">Relaciones</div>
+    </div>
+</div>
+
+{% if reqs_sin_cu > 0 %}
+<div class="alert alert-warning">⚠ <strong>{{ reqs_sin_cu }}</strong> requerimiento(s) funcional(es) sin caso de uso.
+    <a href="{{ url_for('requerimientos.sin_cobertura') }}" style="margin-left:.5rem">Ver</a></div>
+{% endif %}
+{% if contradicciones > 0 %}
+<div class="alert alert-danger">⚠ <strong>{{ contradicciones }}</strong> relación(es) de contradicción detectada(s).
+    <a href="{{ url_for('trazabilidad.matriz') }}" style="margin-left:.5rem">Ver matriz</a></div>
+{% endif %}
+
+{% if reqs_funcionales > 0 %}
+<div class="card">
+    <h2 style="margin-bottom:.75rem">Cobertura de especificación</h2>
+    <div style="height:22px;background:#eee;border-radius:11px;overflow:hidden;margin-bottom:.4rem">
+        <div style="height:100%;width:{{ cobertura_pct }}%;background:linear-gradient(90deg,#2e7d32,#43a047);border-radius:11px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:.8rem;font-weight:700;min-width:40px">
+            {{ cobertura_pct }}%
+        </div>
+    </div>
+    <p style="color:#666;font-size:.85rem">{{ reqs_funcionales - reqs_sin_cu }} de {{ reqs_funcionales }} requerimientos funcionales cubiertos.</p>
+</div>
+{% endif %}
+
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:1rem;margin-bottom:1.25rem">
+    {% if estados %}
+    <div class="card">
+        <h2 style="margin-bottom:.75rem">Por Estado</h2>
+        <canvas id="chartEstados" height="180"></canvas>
+    </div>
+    {% endif %}
+    {% if prioridades %}
+    <div class="card">
+        <h2 style="margin-bottom:.75rem">Por Prioridad</h2>
+        <canvas id="chartPrioridades" height="180"></canvas>
+    </div>
+    {% endif %}
+    {% if tipos %}
+    <div class="card">
+        <h2 style="margin-bottom:.75rem">Por Tipo</h2>
+        <canvas id="chartTipos" height="180"></canvas>
+    </div>
+    {% endif %}
+</div>
+
+<div class="card">
+    <div class="page-header" style="margin-bottom:.75rem">
+        <h2>Proyectos</h2>
+    </div>
+    {% if proyectos %}
+    <table>
+        <thead><tr><th>Nombre</th><th>Descripción</th><th>Creado</th><th>Acciones</th></tr></thead>
+        <tbody>
+        {% for p in proyectos %}
+        <tr>
+            <td><a href="{{ url_for('proyectos.detalle', id=p.id) }}"><strong>{{ p.nombre }}</strong></a></td>
+            <td style="color:#666">{{ (p.descripcion or '')[:60] }}</td>
+            <td>{{ p.fecha_creacion.strftime('%d/%m/%Y') }}</td>
+            <td>
+                <a href="{{ url_for('trazabilidad.matriz', proyecto_id=p.id) }}" class="btn btn-sm btn-secondary">Matriz</a>
+                <a href="{{ url_for('exportar.exportar_csv', proyecto_id=p.id) }}" class="btn btn-sm btn-secondary">CSV</a>
+            </td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <div class="empty-state"><p>No hay proyectos. <a href="{{ url_for('proyectos.nuevo') }}">Crear uno</a>.</p></div>
+    {% endif %}
+</div>
+{% endblock %}
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+const cE={'pendiente':'#f6c23e','activo':'#4e73df','completado':'#1cc88a','cancelado':'#858796'};
+const cP={'alta':'#e74a3b','media':'#f6c23e','baja':'#1cc88a'};
+const cT={'funcional':'#4e73df','no_funcional':'#1cc88a'};
+{% if estados %}
+new Chart(document.getElementById('chartEstados'),{type:'doughnut',data:{
+    labels:[{% for e,c in estados %}'{{e}}'{% if not loop.last %},{% endif %}{% endfor %}],
+    datasets:[{data:[{% for e,c in estados %}{{c}}{% if not loop.last %},{% endif %}{% endfor %}],
+               backgroundColor:[{% for e,c in estados %}'{{cE.get(e,"#999")}}'{% if not loop.last %},{% endif %}{% endfor %}]}]
+},options:{responsive:true,plugins:{legend:{position:'bottom'}}}});
+{% endif %}
+{% if prioridades %}
+new Chart(document.getElementById('chartPrioridades'),{type:'bar',data:{
+    labels:[{% for p,c in prioridades %}'{{p}}'{% if not loop.last %},{% endif %}{% endfor %}],
+    datasets:[{data:[{% for p,c in prioridades %}{{c}}{% if not loop.last %},{% endif %}{% endfor %}],
+               backgroundColor:[{% for p,c in prioridades %}'{{cP.get(p,"#999")}}'{% if not loop.last %},{% endif %}{% endfor %}]}]
+},options:{responsive:true,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{stepSize:1}}}}});
+{% endif %}
+{% if tipos %}
+new Chart(document.getElementById('chartTipos'),{type:'pie',data:{
+    labels:[{% for t,c in tipos %}'{{t.replace("_"," ")}}'{% if not loop.last %},{% endif %}{% endfor %}],
+    datasets:[{data:[{% for t,c in tipos %}{{c}}{% if not loop.last %},{% endif %}{% endfor %}],
+               backgroundColor:[{% for t,c in tipos %}'{{cT.get(t,"#999")}}'{% if not loop.last %},{% endif %}{% endfor %}]}]
+},options:{responsive:true,plugins:{legend:{position:'bottom'}}}});
+{% endif %}
+</script>
+{% endblock %}
