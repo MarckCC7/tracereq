@@ -13,10 +13,12 @@ def create_app(config_name='default'):
     from app.routes.requerimientos import bp_reqs
     from app.routes.casos_uso import bp_cu
     from app.routes.trazabilidad import bp_traz
+    from app.routes.exportar import bp_export
     app.register_blueprint(bp_proyectos, url_prefix='/proyectos')
     app.register_blueprint(bp_reqs, url_prefix='/requerimientos')
     app.register_blueprint(bp_cu, url_prefix='/casos-uso')
     app.register_blueprint(bp_traz, url_prefix='/trazabilidad')
+    app.register_blueprint(bp_export, url_prefix='/exportar')
 
     @app.route('/')
     def index():

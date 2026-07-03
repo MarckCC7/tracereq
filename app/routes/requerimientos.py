@@ -17,12 +17,29 @@ def _registrar_cambio(req_id, campo, anterior, nuevo, desc=None):
 @bp_reqs.route('/')
 def lista():
     proyecto_id = request.args.get('proyecto_id', type=int)
+    estado = request.args.get('estado', '')
+    prioridad = request.args.get('prioridad', '')
+    tipo = request.args.get('tipo', '')
+    categoria = request.args.get('categoria', '')
+    busqueda = request.args.get('q', '').strip()
     proyectos = Proyecto.query.order_by(Proyecto.nombre).all()
+
     query = Requerimiento.query
-    if proyecto_id:
-        query = query.filter_by(proyecto_id=proyecto_id)
+    if proyecto_id: query = query.filter_by(proyecto_id=proyecto_id)
+    if estado:      query = query.filter_by(estado=estado)
+    if prioridad:   query = query.filter_by(prioridad=prioridad)
+    if tipo:        query = query.filter_by(tipo=tipo)
+    if categoria:   query = query.filter_by(categoria=categoria)
+    if busqueda:
+        query = query.filter(db.or_(
+            Requerimiento.identificador.ilike(f'%{busqueda}%'),
+            Requerimiento.descripcion.ilike(f'%{busqueda}%')))
+
     reqs = query.order_by(Requerimiento.identificador).all()
-    return render_template('requerimientos/lista.html', reqs=reqs, proyectos=proyectos, proyecto_id=proyecto_id)
+    filtros = {'estado': estado, 'prioridad': prioridad, 'tipo': tipo,
+               'categoria': categoria, 'q': busqueda, 'proyecto_id': proyecto_id}
+    return render_template('requerimientos/lista.html', reqs=reqs, proyectos=proyectos,
+                           proyecto_id=proyecto_id, categorias=CATEGORIAS_NF, filtros=filtros)
 
 @bp_reqs.route('/nuevo', methods=['GET', 'POST'])
 def nuevo():
@@ -68,13 +85,9 @@ def editar(id):
     proyectos = Proyecto.query.all()
     if request.method == 'POST':
         desc_cambio = request.form.get('descripcion_cambio', '').strip() or 'Actualización'
-        campos = {
-            'identificador': request.form.get('identificador', '').strip().upper(),
-            'tipo': request.form.get('tipo', ''),
-            'descripcion': request.form.get('descripcion', '').strip(),
-            'prioridad': request.form.get('prioridad', ''),
-            'estado': request.form.get('estado', ''),
-        }
+        campos = {'identificador': request.form.get('identificador', '').strip().upper(),
+                  'tipo': request.form.get('tipo', ''), 'descripcion': request.form.get('descripcion', '').strip(),
+                  'prioridad': request.form.get('prioridad', ''), 'estado': request.form.get('estado', '')}
         for campo, nuevo_val in campos.items():
             _registrar_cambio(req.id, campo, getattr(req, campo), nuevo_val, desc_cambio)
             setattr(req, campo, nuevo_val)

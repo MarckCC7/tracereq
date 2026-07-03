@@ -3,45 +3,81 @@
 {% block content %}
 <div class="page-header">
     <h1>Requerimientos</h1>
-    <a href="{{ url_for('requerimientos.nuevo', proyecto_id=proyecto_id) }}" class="btn btn-primary">+ Nuevo</a>
+    <a href="{{ url_for('requerimientos.nuevo', proyecto_id=filtros.proyecto_id) }}" class="btn btn-primary">+ Nuevo</a>
 </div>
-<div class="card" style="padding:.75rem 1rem;margin-bottom:1rem">
-    <form method="get" style="display:flex;gap:.75rem;align-items:flex-end;flex-wrap:wrap">
+<div class="card" style="padding:.75rem 1rem;margin-bottom:1rem;background:#f9f9f9">
+    <form method="get" style="display:flex;flex-wrap:wrap;gap:.65rem;align-items:flex-end">
         <div>
-            <label style="display:block;font-size:.8rem;font-weight:600;margin-bottom:.2rem">Proyecto</label>
+            <label style="display:block;font-size:.78rem;font-weight:600;margin-bottom:.2rem">Proyecto</label>
             <select name="proyecto_id" class="form-control" style="width:auto">
                 <option value="">Todos</option>
                 {% for p in proyectos %}
-                <option value="{{ p.id }}" {% if proyecto_id == p.id %}selected{% endif %}>{{ p.nombre }}</option>
+                <option value="{{ p.id }}" {% if filtros.proyecto_id == p.id %}selected{% endif %}>{{ p.nombre }}</option>
                 {% endfor %}
             </select>
         </div>
+        <div>
+            <label style="display:block;font-size:.78rem;font-weight:600;margin-bottom:.2rem">Tipo</label>
+            <select name="tipo" class="form-control" style="width:auto">
+                <option value="">Todos</option>
+                <option value="funcional" {% if filtros.tipo == 'funcional' %}selected{% endif %}>Funcional</option>
+                <option value="no_funcional" {% if filtros.tipo == 'no_funcional' %}selected{% endif %}>No funcional</option>
+            </select>
+        </div>
+        <div>
+            <label style="display:block;font-size:.78rem;font-weight:600;margin-bottom:.2rem">Estado</label>
+            <select name="estado" class="form-control" style="width:auto">
+                <option value="">Todos</option>
+                {% for e in ['pendiente','activo','completado','cancelado'] %}
+                <option value="{{ e }}" {% if filtros.estado == e %}selected{% endif %}>{{ e }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div>
+            <label style="display:block;font-size:.78rem;font-weight:600;margin-bottom:.2rem">Prioridad</label>
+            <select name="prioridad" class="form-control" style="width:auto">
+                <option value="">Todas</option>
+                {% for p in ['alta','media','baja'] %}
+                <option value="{{ p }}" {% if filtros.prioridad == p %}selected{% endif %}>{{ p }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div>
+            <label style="display:block;font-size:.78rem;font-weight:600;margin-bottom:.2rem">Buscar</label>
+            <input type="text" name="q" class="form-control" placeholder="ID o descripción..." value="{{ filtros.q }}" style="width:180px">
+        </div>
         <button type="submit" class="btn btn-primary btn-sm">Filtrar</button>
         <a href="{{ url_for('requerimientos.lista') }}" class="btn btn-secondary btn-sm">Limpiar</a>
+        {% if filtros.proyecto_id %}
+        <a href="{{ url_for('exportar.exportar_csv', proyecto_id=filtros.proyecto_id) }}" class="btn btn-secondary btn-sm">Exportar CSV</a>
+        <a href="{{ url_for('exportar.exportar_json', proyecto_id=filtros.proyecto_id) }}" class="btn btn-secondary btn-sm">Exportar JSON</a>
+        {% endif %}
     </form>
 </div>
 {% if reqs %}
 <div class="card">
+    <p style="color:#666;font-size:.85rem;margin-bottom:.75rem">{{ reqs|length }} resultado(s)</p>
     <table>
-        <thead><tr><th>ID</th><th>Proyecto</th><th>Tipo</th><th>Descripción</th><th>Prioridad</th><th>Estado</th><th></th></tr></thead>
+        <thead><tr><th>ID</th><th>Proyecto</th><th>Tipo</th><th>Descripción</th><th>Prioridad</th><th>Estado</th><th>CU</th><th></th></tr></thead>
         <tbody>
         {% for r in reqs %}
         <tr>
             <td><a href="{{ url_for('requerimientos.detalle', id=r.id) }}"><strong>{{ r.identificador }}</strong></a></td>
-            <td>{{ r.proyecto.nombre }}</td>
-            <td>{{ r.tipo.replace('_',' ') }}</td>
-            <td>{{ r.descripcion[:65] }}{% if r.descripcion|length > 65 %}…{% endif %}</td>
-            <td>{{ r.prioridad }}</td>
-            <td>{{ r.estado }}</td>
-            <td>
-                <a href="{{ url_for('requerimientos.editar', id=r.id) }}" class="btn btn-sm btn-secondary">Editar</a>
+            <td style="font-size:.85rem">{{ r.proyecto.nombre }}</td>
+            <td style="font-size:.8rem">{{ r.tipo.replace('_',' ') }}</td>
+            <td>{{ r.descripcion[:60] }}{% if r.descripcion|length > 60 %}…{% endif %}</td>
+            <td style="font-size:.85rem">{{ r.prioridad }}</td>
+            <td style="font-size:.85rem">{{ r.estado }}</td>
+            <td style="text-align:center{% if r.tipo == 'funcional' and r.casos_uso.count() == 0 %};color:#c62828{% endif %}">
+                {{ r.casos_uso.count() }}
             </td>
+            <td><a href="{{ url_for('requerimientos.editar', id=r.id) }}" class="btn btn-sm btn-secondary">Editar</a></td>
         </tr>
         {% endfor %}
         </tbody>
     </table>
 </div>
 {% else %}
-<div class="empty-state"><p>No hay requerimientos.</p></div>
+<div class="empty-state"><p>No se encontraron requerimientos con esos filtros.</p></div>
 {% endif %}
 {% endblock %}
