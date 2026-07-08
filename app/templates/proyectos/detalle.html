@@ -1,4 +1,6 @@
 {% extends "base.html" %}
+{% from '_badges.html' import badge_estado, badge_prioridad, badge_tipo %}
+{% from '_export_menu.html' import export_menu %}
 {% block title %}{{ proyecto.nombre }}{% endblock %}
 {% block content %}
 <div class="page-header">
@@ -6,11 +8,12 @@
         <h1>{{ proyecto.nombre }}</h1>
         {% if proyecto.descripcion %}<p style="color:#666;margin-top:.25rem">{{ proyecto.descripcion }}</p>{% endif %}
     </div>
-    <div style="display:flex;gap:.5rem">
-        <a href="{{ url_for('proyectos.editar', id=proyecto.id) }}" class="btn btn-secondary">Editar</a>
+    <div style="display:flex;gap:.5rem;flex-wrap:wrap">
+        {{ export_menu(proyecto.id) }}
+        <a href="{{ url_for('proyectos.editar', id=proyecto.id) }}" class="btn btn-secondary"><i class="fas fa-pen"></i> Editar</a>
         <form method="post" action="{{ url_for('proyectos.eliminar', id=proyecto.id) }}" style="display:inline"
               onsubmit="return confirm('¿Eliminar el proyecto y TODOS sus datos?')">
-            <button type="submit" class="btn btn-danger">Eliminar</button>
+            <button type="submit" class="btn btn-danger"><i class="fas fa-trash"></i> Eliminar</button>
         </form>
     </div>
 </div>
@@ -26,10 +29,10 @@
         {% for r in reqs %}
         <tr>
             <td><a href="{{ url_for('requerimientos.detalle', id=r.id) }}"><strong>{{ r.identificador }}</strong></a></td>
-            <td>{{ r.tipo.replace('_',' ') }}</td>
+            <td>{{ badge_tipo(r.tipo) }}</td>
             <td>{{ r.descripcion[:60] }}{% if r.descripcion|length > 60 %}…{% endif %}</td>
-            <td>{{ r.prioridad }}</td>
-            <td>{{ r.estado }}</td>
+            <td>{{ badge_prioridad(r.prioridad) }}</td>
+            <td>{{ badge_estado(r.estado) }}</td>
         </tr>
         {% endfor %}
         </tbody>

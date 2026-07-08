@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from '_badges.html' import badge_prioridad %}
 {% block title %}Sin Cobertura{% endblock %}
 {% block content %}
 <div class="page-header">
@@ -33,7 +34,7 @@
             <td><a href="{{ url_for('requerimientos.detalle', id=r.id) }}"><strong>{{ r.identificador }}</strong></a></td>
             <td>{{ r.proyecto.nombre }}</td>
             <td>{{ r.descripcion[:70] }}{% if r.descripcion|length > 70 %}…{% endif %}</td>
-            <td>{{ r.prioridad }}</td>
+            <td>{{ badge_prioridad(r.prioridad) }}</td>
             <td><a href="{{ url_for('casos_uso.nuevo', proyecto_id=r.proyecto_id) }}" class="btn btn-sm btn-primary">Crear CU</a></td>
         </tr>
         {% endfor %}

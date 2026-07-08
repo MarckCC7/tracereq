@@ -54,3 +54,21 @@ tbody tr:hover td { background: #fafafa; }
 .metric-card { border-radius: var(--radius); padding: 1.25rem 1.5rem; box-shadow: var(--shadow); }
 .empty-state { text-align: center; padding: 2.5rem; color: #aaa; }
 footer { background: var(--primary); color: rgba(255,255,255,.5); text-align: center; padding: .65rem; font-size: .8rem; margin-top: auto; }
+
+/* Badges de estado / prioridad / tipo */
+.badge { display: inline-block; padding: .2rem .6rem; border-radius: 20px; font-size: .75rem; font-weight: 600; white-space: nowrap; text-transform: capitalize; }
+.badge-alta, .badge-cancelado    { background: #ffebee; color: var(--danger); }
+.badge-media, .badge-pendiente   { background: #fff8e1; color: var(--warning); }
+.badge-baja, .badge-completado   { background: #e8f5e9; color: var(--success); }
+.badge-activo                    { background: #e3f2fd; color: #1565c0; }
+.badge-funcional                 { background: #e3f2fd; color: #1565c0; }
+.badge-no_funcional              { background: #ede7f6; color: #4527a0; }
+
+/* Menu desplegable (exportar, etc.) */
+.dropdown { position: relative; display: inline-block; }
+.dropdown-menu { display: none; position: absolute; right: 0; top: calc(100% + 4px); background: #fff; border: 1px solid var(--border); border-radius: var(--radius); box-shadow: 0 6px 18px rgba(0,0,0,.14); min-width: 200px; z-index: 60; overflow: hidden; }
+.dropdown-menu.show { display: block; }
+.dropdown-menu a { display: flex; align-items: center; gap: .5rem; padding: .55rem .9rem; font-size: .85rem; color: #333; }
+.dropdown-menu a:hover { background: #f5f5f5; text-decoration: none; }
+.dropdown-divider { border-top: 1px solid var(--border); margin: .25rem 0; }
+.dropdown-header { padding: .45rem .9rem .2rem; font-size: .68rem; text-transform: uppercase; letter-spacing: .04em; color: #999; font-weight: 700; }

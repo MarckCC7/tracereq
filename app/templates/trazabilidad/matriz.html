@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from '_export_menu.html' import export_menu %}
 {% block title %}Matriz de Trazabilidad{% endblock %}
 {% block content %}
 <div class="page-header">
@@ -7,8 +8,7 @@
     <div style="display:flex;gap:.5rem;flex-wrap:wrap">
         <a href="{{ url_for('trazabilidad.grafo', proyecto_id=proyecto_id) }}" class="btn btn-secondary"><i class="fas fa-diagram-project"></i> Ver Grafo</a>
         <a href="{{ url_for('trazabilidad.nueva', proyecto_id=proyecto_id) }}" class="btn btn-primary"><i class="fas fa-plus"></i> Nueva relación</a>
-        <a href="{{ url_for('exportar.exportar_csv', proyecto_id=proyecto_id) }}" class="btn btn-secondary">CSV</a>
-        <a href="{{ url_for('exportar.exportar_json', proyecto_id=proyecto_id) }}" class="btn btn-secondary">JSON</a>
+        {{ export_menu(proyecto_id) }}
     </div>
     {% endif %}
 </div>
@@ -45,10 +45,10 @@
             </thead>
             <tbody>
             {% for r in reqs %}
-                {% set cu_ids = matriz_data.get(r.id, set()) %}
+                {% set cu_ids = matriz_data.get(r.id) or [] %}
                 <tr {% if r.tipo == 'funcional' and not cu_ids %}style="background:#fff8e1"{% endif %}>
                     <td><a href="{{ url_for('requerimientos.detalle', id=r.id) }}"><strong>{{ r.identificador }}</strong></a></td>
-                    <td style="font-size:.8rem">{{ 'F' if r.tipo == 'funcional' else 'NF' }}</td>
+                    <td><span class="badge badge-{{ r.tipo }}" style="font-size:.68rem">{{ 'F' if r.tipo == 'funcional' else 'NF' }}</span></td>
                     {% for cu in casos %}
                     <td style="text-align:center;color:#2e7d32;font-weight:600">{% if cu.id in cu_ids %}✓{% endif %}</td>
                     {% endfor %}

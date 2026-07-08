@@ -1,4 +1,6 @@
 {% extends "base.html" %}
+{% from '_export_menu.html' import export_menu %}
+{% from '_badges.html' import badge_estado, badge_prioridad, badge_tipo %}
 {% block title %}Requerimientos{% endblock %}
 {% block content %}
 <div class="page-header">
@@ -49,8 +51,7 @@
         <button type="submit" class="btn btn-primary btn-sm">Filtrar</button>
         <a href="{{ url_for('requerimientos.lista') }}" class="btn btn-secondary btn-sm">Limpiar</a>
         {% if filtros.proyecto_id %}
-        <a href="{{ url_for('exportar.exportar_csv', proyecto_id=filtros.proyecto_id) }}" class="btn btn-secondary btn-sm">Exportar CSV</a>
-        <a href="{{ url_for('exportar.exportar_json', proyecto_id=filtros.proyecto_id) }}" class="btn btn-secondary btn-sm">Exportar JSON</a>
+        {{ export_menu(filtros.proyecto_id, size='btn-sm') }}
         {% endif %}
     </form>
 </div>
@@ -64,10 +65,10 @@
         <tr>
             <td><a href="{{ url_for('requerimientos.detalle', id=r.id) }}"><strong>{{ r.identificador }}</strong></a></td>
             <td style="font-size:.85rem">{{ r.proyecto.nombre }}</td>
-            <td style="font-size:.8rem">{{ r.tipo.replace('_',' ') }}</td>
+            <td>{{ badge_tipo(r.tipo) }}</td>
             <td>{{ r.descripcion[:60] }}{% if r.descripcion|length > 60 %}…{% endif %}</td>
-            <td style="font-size:.85rem">{{ r.prioridad }}</td>
-            <td style="font-size:.85rem">{{ r.estado }}</td>
+            <td>{{ badge_prioridad(r.prioridad) }}</td>
+            <td>{{ badge_estado(r.estado) }}</td>
             <td style="text-align:center{% if r.tipo == 'funcional' and r.casos_uso.count() == 0 %};color:#c62828{% endif %}">
                 {{ r.casos_uso.count() }}
             </td>

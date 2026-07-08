@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from '_export_menu.html' import export_menu %}
 {% block title %}Dashboard - TraceReq{% endblock %}
 {% block content %}
 <div class="page-header">
@@ -80,9 +81,9 @@
             <td><a href="{{ url_for('proyectos.detalle', id=p.id) }}"><strong>{{ p.nombre }}</strong></a></td>
             <td style="color:#666">{{ (p.descripcion or '')[:60] }}</td>
             <td>{{ p.fecha_creacion.strftime('%d/%m/%Y') }}</td>
-            <td>
-                <a href="{{ url_for('trazabilidad.matriz', proyecto_id=p.id) }}" class="btn btn-sm btn-secondary">Matriz</a>
-                <a href="{{ url_for('exportar.exportar_csv', proyecto_id=p.id) }}" class="btn btn-sm btn-secondary">CSV</a>
+            <td style="display:flex;gap:.4rem;flex-wrap:wrap">
+                <a href="{{ url_for('trazabilidad.matriz', proyecto_id=p.id) }}" class="btn btn-sm btn-secondary"><i class="fas fa-table"></i> Matriz</a>
+                {{ export_menu(p.id, size='btn-sm') }}
             </td>
         </tr>
         {% endfor %}

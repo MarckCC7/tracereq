@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from '_badges.html' import badge_estado, badge_prioridad, badge_tipo %}
 {% block title %}{{ req.identificador }}{% endblock %}
 {% block content %}
 <div class="page-header">
@@ -15,9 +16,9 @@
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem">
     <div class="card">
         <table>
-            <tr><th style="width:130px">Tipo</th><td>{{ req.tipo.replace('_',' ') }}</td></tr>
-            <tr><th>Prioridad</th><td>{{ req.prioridad }}</td></tr>
-            <tr><th>Estado</th><td>{{ req.estado }}</td></tr>
+            <tr><th style="width:130px">Tipo</th><td>{{ badge_tipo(req.tipo) }}</td></tr>
+            <tr><th>Prioridad</th><td>{{ badge_prioridad(req.prioridad) }}</td></tr>
+            <tr><th>Estado</th><td>{{ badge_estado(req.estado) }}</td></tr>
             {% if req.categoria %}<tr><th>Categoría</th><td>{{ req.categoria }}</td></tr>{% endif %}
             <tr><th>Creado</th><td>{{ req.fecha_creacion.strftime('%d/%m/%Y %H:%M') }}</td></tr>
             <tr><th>Actualizado</th><td>{{ req.fecha_actualizacion.strftime('%d/%m/%Y %H:%M') }}</td></tr>

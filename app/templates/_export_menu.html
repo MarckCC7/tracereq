@@ -1,0 +1,16 @@
+{% macro export_menu(proyecto_id, size='') %}
+<div class="dropdown">
+    <button type="button" class="btn btn-secondary {{ size }}" data-dropdown-toggle>
+        <i class="fas fa-download"></i> Exportar <i class="fas fa-caret-down"></i>
+    </button>
+    <div class="dropdown-menu">
+        <div class="dropdown-header">Versión actual</div>
+        <a href="{{ url_for('exportar.exportar_csv', proyecto_id=proyecto_id) }}"><i class="fas fa-file-csv"></i> CSV</a>
+        <a href="{{ url_for('exportar.exportar_json', proyecto_id=proyecto_id) }}"><i class="fas fa-file-code"></i> JSON</a>
+        <div class="dropdown-divider"></div>
+        <div class="dropdown-header">Con historial de cambios</div>
+        <a href="{{ url_for('exportar.exportar_csv', proyecto_id=proyecto_id, version='historial') }}"><i class="fas fa-file-csv"></i> CSV</a>
+        <a href="{{ url_for('exportar.exportar_json', proyecto_id=proyecto_id, version='historial') }}"><i class="fas fa-file-code"></i> JSON</a>
+    </div>
+</div>
+{% endmacro %}
