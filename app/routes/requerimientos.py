@@ -1,8 +1,7 @@
-import re
-from flask import Blueprint, render_template, request, redirect, url_for, flash
+from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
 from app import db
 from app.models import Requerimiento, Proyecto, HistorialCambio, Comentario
-from app.utils import now_peru
+from app.utils import now_peru, generar_identificador
 
 bp_reqs = Blueprint('requerimientos', __name__)
 
@@ -11,15 +10,9 @@ CATEGORIAS_NF = ['rendimiento', 'seguridad', 'usabilidad', 'confiabilidad', 'man
 PREFIJOS_TIPO = {'funcional': 'RF', 'no_funcional': 'RNF'}
 
 def _generar_identificador(proyecto_id, tipo):
-    prefijo = PREFIJOS_TIPO[tipo]
-    patron = re.compile(rf'^{prefijo}-(\d+)$')
-    max_num = 0
-    reqs = Requerimiento.query.filter_by(proyecto_id=proyecto_id, tipo=tipo).all()
-    for r in reqs:
-        m = patron.match(r.identificador)
-        if m:
-            max_num = max(max_num, int(m.group(1)))
-    return f'{prefijo}-{max_num + 1:03d}'
+    existentes = [r.identificador for r in
+                  Requerimiento.query.filter_by(proyecto_id=proyecto_id, tipo=tipo).all()]
+    return generar_identificador(existentes, PREFIJOS_TIPO[tipo])
 
 def _registrar_cambio(req_id, campo, anterior, nuevo, desc=None):
     if str(anterior or '') != str(nuevo or ''):
@@ -51,6 +44,14 @@ def lista():
                'categoria': categoria, 'q': busqueda, 'proyecto_id': proyecto_id}
     return render_template('requerimientos/lista.html', reqs=reqs, proyectos=proyectos,
                            proyecto_id=proyecto_id, categorias=CATEGORIAS_NF, filtros=filtros)
+
+@bp_reqs.route('/siguiente-id')
+def siguiente_id():
+    proyecto_id = request.args.get('proyecto_id', type=int)
+    tipo = request.args.get('tipo', '')
+    if not proyecto_id or tipo not in PREFIJOS_TIPO:
+        return jsonify({'identificador': None})
+    return jsonify({'identificador': _generar_identificador(proyecto_id, tipo)})
 
 @bp_reqs.route('/nuevo', methods=['GET', 'POST'])
 def nuevo():

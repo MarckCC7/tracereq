@@ -18,8 +18,8 @@
                 </select>
             </div>
             <div class="form-group">
-                <label>Identificador *</label>
-                <input type="text" name="identificador" class="form-control" placeholder="CU-001" required style="text-transform:uppercase">
+                <label>Identificador</label>
+                <input type="text" class="form-control" id="preview_identificador" value="—" readonly disabled>
             </div>
             <div class="form-group" style="grid-column:1/-1">
                 <label>Nombre *</label>
@@ -58,8 +58,18 @@
 {% endblock %}
 {% block scripts %}
 <script>
+const previewIdentificador = document.getElementById('preview_identificador');
+
+function actualizarPreviewId(proyectoId) {
+    if (!proyectoId) { previewIdentificador.value = '—'; return; }
+    fetch(`{{ url_for('casos_uso.siguiente_id') }}?proyecto_id=${proyectoId}`)
+        .then(r => r.json())
+        .then(data => { previewIdentificador.value = data.identificador || '—'; });
+}
+
 document.getElementById('sel_proyecto').addEventListener('change', function() {
     const pid = this.value;
+    actualizarPreviewId(pid);
     if (!pid) return;
     fetch('/casos-uso/reqs-por-proyecto?proyecto_id=' + pid)
         .then(r => r.json())

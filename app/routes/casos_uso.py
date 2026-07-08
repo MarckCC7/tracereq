@@ -1,8 +1,22 @@
-from flask import Blueprint, render_template, request, redirect, url_for, flash
+from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
 from app import db
 from app.models import CasoUso, Proyecto, Requerimiento
+from app.utils import generar_identificador
 
 bp_cu = Blueprint('casos_uso', __name__)
+
+PREFIJO_CU = 'CU'
+
+def _generar_identificador(proyecto_id):
+    existentes = [c.identificador for c in CasoUso.query.filter_by(proyecto_id=proyecto_id).all()]
+    return generar_identificador(existentes, PREFIJO_CU)
+
+@bp_cu.route('/siguiente-id')
+def siguiente_id():
+    proyecto_id = request.args.get('proyecto_id', type=int)
+    if not proyecto_id:
+        return jsonify({'identificador': None})
+    return jsonify({'identificador': _generar_identificador(proyecto_id)})
 
 @bp_cu.route('/')
 def lista():
@@ -20,30 +34,27 @@ def nuevo():
     proyecto_id = request.args.get('proyecto_id', type=int)
     if request.method == 'POST':
         proyecto_id = request.form.get('proyecto_id', type=int)
-        identificador = request.form.get('identificador', '').strip().upper()
         nombre = request.form.get('nombre', '').strip()
         descripcion = request.form.get('descripcion', '').strip()
         actor = request.form.get('actor', '').strip()
         req_ids = request.form.getlist('requerimientos', type=int)
-        if not proyecto_id or not identificador or not nombre:
-            flash('Proyecto, identificador y nombre son obligatorios.', 'danger')
+        if not proyecto_id or not nombre:
+            flash('Proyecto y nombre son obligatorios.', 'danger')
             reqs_proy = Requerimiento.query.filter_by(proyecto_id=proyecto_id, tipo='funcional').all() if proyecto_id else []
             return render_template('casos_uso/nuevo.html', proyectos=proyectos,
                                    proyecto_id=proyecto_id, reqs_proy=reqs_proy)
-        if CasoUso.query.filter_by(proyecto_id=proyecto_id, identificador=identificador).first():
-            flash(f'Ya existe el identificador {identificador}.', 'danger')
-        else:
-            cu = CasoUso(proyecto_id=proyecto_id, identificador=identificador,
-                         nombre=nombre, descripcion=descripcion, actor=actor)
-            db.session.add(cu)
-            db.session.flush()
-            if req_ids:
-                reqs = Requerimiento.query.filter(Requerimiento.id.in_(req_ids),
-                                                  Requerimiento.proyecto_id == proyecto_id).all()
-                cu.requerimientos.extend(reqs)
-            db.session.commit()
-            flash(f'Caso de uso {identificador} creado.', 'success')
-            return redirect(url_for('casos_uso.detalle', id=cu.id))
+        identificador = _generar_identificador(proyecto_id)
+        cu = CasoUso(proyecto_id=proyecto_id, identificador=identificador,
+                     nombre=nombre, descripcion=descripcion, actor=actor)
+        db.session.add(cu)
+        db.session.flush()
+        if req_ids:
+            reqs = Requerimiento.query.filter(Requerimiento.id.in_(req_ids),
+                                              Requerimiento.proyecto_id == proyecto_id).all()
+            cu.requerimientos.extend(reqs)
+        db.session.commit()
+        flash(f'Caso de uso {identificador} creado.', 'success')
+        return redirect(url_for('casos_uso.detalle', id=cu.id))
     reqs_proy = Requerimiento.query.filter_by(proyecto_id=proyecto_id, tipo='funcional').all() if proyecto_id else []
     return render_template('casos_uso/nuevo.html', proyectos=proyectos,
                            proyecto_id=proyecto_id, reqs_proy=reqs_proy)
