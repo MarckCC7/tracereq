@@ -1,12 +1,12 @@
-from datetime import datetime
 from app import db
+from app.utils import now_peru
 
 class Proyecto(db.Model):
     __tablename__ = 'proyectos'
     id = db.Column(db.Integer, primary_key=True)
     nombre = db.Column(db.String(150), nullable=False)
     descripcion = db.Column(db.Text)
-    fecha_creacion = db.Column(db.DateTime, default=datetime.utcnow)
+    fecha_creacion = db.Column(db.DateTime, default=now_peru)
 
     requerimientos = db.relationship('Requerimiento', backref='proyecto', lazy='dynamic', cascade='all, delete-orphan')
     casos_uso = db.relationship('CasoUso', backref='proyecto', lazy='dynamic', cascade='all, delete-orphan')
@@ -22,8 +22,8 @@ class Requerimiento(db.Model):
     prioridad = db.Column(db.Enum('alta', 'media', 'baja'), nullable=False, default='media')
     estado = db.Column(db.Enum('pendiente', 'activo', 'completado', 'cancelado'), nullable=False, default='pendiente')
     categoria = db.Column(db.String(80))  # para no funcionales: rendimiento, seguridad, usabilidad, etc.
-    fecha_creacion = db.Column(db.DateTime, default=datetime.utcnow)
-    fecha_actualizacion = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    fecha_creacion = db.Column(db.DateTime, default=now_peru)
+    fecha_actualizacion = db.Column(db.DateTime, default=now_peru, onupdate=now_peru)
 
     __table_args__ = (db.UniqueConstraint('proyecto_id', 'identificador', name='uq_req_identificador'),)
 
@@ -64,7 +64,7 @@ class CasoUso(db.Model):
     nombre = db.Column(db.String(150), nullable=False)
     descripcion = db.Column(db.Text)
     actor = db.Column(db.String(100))
-    fecha_creacion = db.Column(db.DateTime, default=datetime.utcnow)
+    fecha_creacion = db.Column(db.DateTime, default=now_peru)
 
     __table_args__ = (db.UniqueConstraint('proyecto_id', 'identificador', name='uq_cu_identificador'),)
 
@@ -83,7 +83,7 @@ class Trazabilidad(db.Model):
     requerimiento_destino_id = db.Column(db.Integer, db.ForeignKey('requerimientos.id'), nullable=False)
     tipo_relacion = db.Column(db.Enum('depende_de', 'refina', 'contradice'), nullable=False)
     descripcion = db.Column(db.String(255))
-    fecha_creacion = db.Column(db.DateTime, default=datetime.utcnow)
+    fecha_creacion = db.Column(db.DateTime, default=now_peru)
 
     __table_args__ = (
         db.UniqueConstraint('requerimiento_origen_id', 'requerimiento_destino_id', name='uq_trazabilidad'),
@@ -98,7 +98,7 @@ class HistorialCambio(db.Model):
     valor_anterior = db.Column(db.Text)
     valor_nuevo = db.Column(db.Text)
     descripcion = db.Column(db.String(255))
-    fecha = db.Column(db.DateTime, default=datetime.utcnow)
+    fecha = db.Column(db.DateTime, default=now_peru)
 
 class Comentario(db.Model):
     __tablename__ = 'comentarios'
@@ -106,4 +106,4 @@ class Comentario(db.Model):
     requerimiento_id = db.Column(db.Integer, db.ForeignKey('requerimientos.id'), nullable=False)
     texto = db.Column(db.Text, nullable=False)
     autor = db.Column(db.String(80), default='Sistema')
-    fecha_creacion = db.Column(db.DateTime, default=datetime.utcnow)
+    fecha_creacion = db.Column(db.DateTime, default=now_peru)

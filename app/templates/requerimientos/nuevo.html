@@ -18,16 +18,13 @@
                 </select>
             </div>
             <div class="form-group">
-                <label>Identificador *</label>
-                <input type="text" name="identificador" class="form-control" placeholder="RF-001" required style="text-transform:uppercase">
-            </div>
-            <div class="form-group">
                 <label>Tipo *</label>
                 <select name="tipo" id="sel_tipo" class="form-control" required>
                     <option value="">- Seleccionar -</option>
                     <option value="funcional">Funcional</option>
                     <option value="no_funcional">No Funcional</option>
                 </select>
+                <small class="form-text">El identificador (RF-001, RNF-001, ...) se asigna automáticamente.</small>
             </div>
             <div class="form-group" id="g_cat" style="display:none">
                 <label>Categoría</label>

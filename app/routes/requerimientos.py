@@ -1,11 +1,25 @@
-from datetime import datetime
+import re
 from flask import Blueprint, render_template, request, redirect, url_for, flash
 from app import db
 from app.models import Requerimiento, Proyecto, HistorialCambio, Comentario
+from app.utils import now_peru
 
 bp_reqs = Blueprint('requerimientos', __name__)
 
 CATEGORIAS_NF = ['rendimiento', 'seguridad', 'usabilidad', 'confiabilidad', 'mantenibilidad', 'escalabilidad', 'otro']
+
+PREFIJOS_TIPO = {'funcional': 'RF', 'no_funcional': 'RNF'}
+
+def _generar_identificador(proyecto_id, tipo):
+    prefijo = PREFIJOS_TIPO[tipo]
+    patron = re.compile(rf'^{prefijo}-(\d+)$')
+    max_num = 0
+    reqs = Requerimiento.query.filter_by(proyecto_id=proyecto_id, tipo=tipo).all()
+    for r in reqs:
+        m = patron.match(r.identificador)
+        if m:
+            max_num = max(max_num, int(m.group(1)))
+    return f'{prefijo}-{max_num + 1:03d}'
 
 def _registrar_cambio(req_id, campo, anterior, nuevo, desc=None):
     if str(anterior or '') != str(nuevo or ''):
@@ -44,20 +58,16 @@ def nuevo():
     proyecto_id = request.args.get('proyecto_id', type=int)
     if request.method == 'POST':
         proyecto_id = request.form.get('proyecto_id', type=int)
-        identificador = request.form.get('identificador', '').strip().upper()
         tipo = request.form.get('tipo', '')
         descripcion = request.form.get('descripcion', '').strip()
         prioridad = request.form.get('prioridad', 'media')
         estado = request.form.get('estado', 'pendiente')
         categoria = request.form.get('categoria') if tipo == 'no_funcional' else None
-        if not proyecto_id or not identificador or not descripcion or tipo not in ('funcional', 'no_funcional'):
+        if not proyecto_id or not descripcion or tipo not in ('funcional', 'no_funcional'):
             flash('Todos los campos obligatorios deben completarse.', 'danger')
             return render_template('requerimientos/nuevo.html', proyectos=proyectos,
                                    proyecto_id=proyecto_id, categorias=CATEGORIAS_NF)
-        if Requerimiento.query.filter_by(proyecto_id=proyecto_id, identificador=identificador).first():
-            flash(f'Ya existe el identificador {identificador}.', 'danger')
-            return render_template('requerimientos/nuevo.html', proyectos=proyectos,
-                                   proyecto_id=proyecto_id, categorias=CATEGORIAS_NF)
+        identificador = _generar_identificador(proyecto_id, tipo)
         req = Requerimiento(proyecto_id=proyecto_id, identificador=identificador, tipo=tipo,
                             descripcion=descripcion, prioridad=prioridad, estado=estado, categoria=categoria)
         db.session.add(req)
@@ -86,14 +96,13 @@ def editar(id):
     proyectos = Proyecto.query.all()
     if request.method == 'POST':
         desc_cambio = request.form.get('descripcion_cambio', '').strip() or 'Actualización'
-        campos = {'identificador': request.form.get('identificador', '').strip().upper(),
-                  'tipo': request.form.get('tipo', ''), 'descripcion': request.form.get('descripcion', '').strip(),
+        campos = {'tipo': request.form.get('tipo', ''), 'descripcion': request.form.get('descripcion', '').strip(),
                   'prioridad': request.form.get('prioridad', ''), 'estado': request.form.get('estado', '')}
         for campo, nuevo_val in campos.items():
             _registrar_cambio(req.id, campo, getattr(req, campo), nuevo_val, desc_cambio)
             setattr(req, campo, nuevo_val)
         req.categoria = request.form.get('categoria') if req.tipo == 'no_funcional' else None
-        req.fecha_actualizacion = datetime.utcnow()
+        req.fecha_actualizacion = now_peru()
         db.session.commit()
         flash('Requerimiento actualizado.', 'success')
         return redirect(url_for('requerimientos.detalle', id=id))
