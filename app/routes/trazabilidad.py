@@ -49,14 +49,17 @@ def matriz():
     proyectos = Proyecto.query.order_by(Proyecto.nombre).all()
     reqs, casos, matriz_data, contradicciones, relaciones_traz = [], [], {}, [], []
     if proyecto_id:
-        reqs = Requerimiento.query.filter_by(proyecto_id=proyecto_id).order_by(Requerimiento.identificador).all()
+        # La matriz de cobertura solo aplica a requerimientos funcionales: los casos
+        # de uso nunca se asocian a requerimientos no funcionales (ver RF3).
+        reqs = Requerimiento.query.filter_by(proyecto_id=proyecto_id, tipo='funcional').order_by(Requerimiento.identificador).all()
         casos = CasoUso.query.filter_by(proyecto_id=proyecto_id).order_by(CasoUso.identificador).all()
         for req in reqs:
             matriz_data[req.id] = set(cu.id for cu in req.casos_uso)
-        req_ids = [r.id for r in reqs]
+        # Las relaciones de trazabilidad sí aplican a RF y RNF por igual.
+        todos_ids = [r.id for r in Requerimiento.query.filter_by(proyecto_id=proyecto_id).all()]
         contradicciones = Trazabilidad.query.filter(Trazabilidad.tipo_relacion == 'contradice',
-                                                     Trazabilidad.requerimiento_origen_id.in_(req_ids)).all()
-        relaciones_traz = Trazabilidad.query.filter(Trazabilidad.requerimiento_origen_id.in_(req_ids)).all()
+                                                     Trazabilidad.requerimiento_origen_id.in_(todos_ids)).all()
+        relaciones_traz = Trazabilidad.query.filter(Trazabilidad.requerimiento_origen_id.in_(todos_ids)).all()
     return render_template('trazabilidad/matriz.html', proyectos=proyectos, proyecto_id=proyecto_id,
                            reqs=reqs, casos=casos, matriz_data=matriz_data,
                            contradicciones=contradicciones, relaciones_traz=relaciones_traz)

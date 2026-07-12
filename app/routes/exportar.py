@@ -36,9 +36,11 @@ def exportar_csv(proyecto_id):
         w.writerow([cu.id, cu.identificador, cu.nombre, cu.actor or '',
                     ', '.join(r.identificador for r in cu.requerimientos)])
     w.writerow([])
-    w.writerow(['=== MATRIZ (Req x CU) ==='])
+    w.writerow(['=== MATRIZ (RF x CU) ==='])
     w.writerow(['Requerimiento'] + [cu.identificador for cu in casos])
     for r in reqs:
+        if r.tipo != 'funcional':
+            continue
         ids_cu = set(cu.id for cu in r.casos_uso)
         w.writerow([r.identificador] + ['X' if cu.id in ids_cu else '' for cu in casos])
     w.writerow([])

@@ -1,6 +1,6 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
 from app import db
-from app.models import CasoUso, Proyecto, Requerimiento
+from app.models import CasoUso, Proyecto, Requerimiento, HistorialCasoUso
 from app.utils import generar_identificador
 
 bp_cu = Blueprint('casos_uso', __name__)
@@ -10,6 +10,13 @@ PREFIJO_CU = 'CU'
 def _generar_identificador(proyecto_id):
     existentes = [c.identificador for c in CasoUso.query.filter_by(proyecto_id=proyecto_id).all()]
     return generar_identificador(existentes, PREFIJO_CU)
+
+def _registrar_cambio(cu_id, campo, anterior, nuevo, desc=None):
+    if str(anterior or '') != str(nuevo or ''):
+        db.session.add(HistorialCasoUso(
+            caso_uso_id=cu_id, campo_modificado=campo,
+            valor_anterior=str(anterior or ''), valor_nuevo=str(nuevo or ''),
+            descripcion=desc or f'Campo {campo} modificado'))
 
 @bp_cu.route('/siguiente-id')
 def siguiente_id():
@@ -62,23 +69,34 @@ def nuevo():
 @bp_cu.route('/<int:id>')
 def detalle(id):
     cu = CasoUso.query.get_or_404(id)
-    return render_template('casos_uso/detalle.html', cu=cu)
+    historial = cu.historial.order_by(HistorialCasoUso.fecha.desc()).all()
+    return render_template('casos_uso/detalle.html', cu=cu, historial=historial)
 
 @bp_cu.route('/<int:id>/editar', methods=['GET', 'POST'])
 def editar(id):
     cu = CasoUso.query.get_or_404(id)
     reqs_proy = Requerimiento.query.filter_by(proyecto_id=cu.proyecto_id, tipo='funcional').all()
     if request.method == 'POST':
-        cu.nombre = request.form.get('nombre', '').strip()
-        cu.descripcion = request.form.get('descripcion', '').strip()
-        cu.actor = request.form.get('actor', '').strip()
+        desc_cambio = request.form.get('descripcion_cambio', '').strip() or 'Actualización'
+        campos = {'nombre': request.form.get('nombre', '').strip(),
+                  'actor': request.form.get('actor', '').strip(),
+                  'descripcion': request.form.get('descripcion', '').strip()}
+        for campo, nuevo_val in campos.items():
+            _registrar_cambio(cu.id, campo, getattr(cu, campo), nuevo_val, desc_cambio)
+            setattr(cu, campo, nuevo_val)
+
+        anteriores = sorted(r.identificador for r in cu.requerimientos)
         req_ids = request.form.getlist('requerimientos', type=int)
         for r in list(cu.requerimientos):
             cu.requerimientos.remove(r)
+        reqs_nuevos = []
         if req_ids:
-            reqs = Requerimiento.query.filter(Requerimiento.id.in_(req_ids),
-                                              Requerimiento.proyecto_id == cu.proyecto_id).all()
-            cu.requerimientos.extend(reqs)
+            reqs_nuevos = Requerimiento.query.filter(Requerimiento.id.in_(req_ids),
+                                                      Requerimiento.proyecto_id == cu.proyecto_id).all()
+            cu.requerimientos.extend(reqs_nuevos)
+        nuevos = sorted(r.identificador for r in reqs_nuevos)
+        _registrar_cambio(cu.id, 'requerimientos asociados', ', '.join(anteriores), ', '.join(nuevos), desc_cambio)
+
         db.session.commit()
         flash('Caso de uso actualizado.', 'success')
         return redirect(url_for('casos_uso.detalle', id=id))

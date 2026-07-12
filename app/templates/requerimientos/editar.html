@@ -10,7 +10,8 @@
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem">
             <div class="form-group">
                 <label>Identificador</label>
-                <input type="text" class="form-control" value="{{ req.identificador }}" readonly disabled>
+                <input type="text" class="form-control" id="preview_identificador" value="{{ req.identificador }}" readonly disabled>
+                <small class="form-text" id="aviso_id" style="display:none;color:#e65100">Se reasignará al guardar.</small>
             </div>
             <div class="form-group">
                 <label>Tipo</label>
@@ -22,7 +23,7 @@
             <div class="form-group" id="g_cat" {% if req.tipo != 'no_funcional' %}style="display:none"{% endif %}>
                 <label>Categoría</label>
                 <select name="categoria" class="form-control">
-                    {% for c in categorias %}<option value="{{ c }}" {% if req.categoria == c %}selected{% endif %}>{{ c }}</option>{% endfor %}
+                    {% for c in categorias %}<option value="{{ c }}" {% if req.categoria == c %}selected{% endif %}>{{ c|capitalize }}</option>{% endfor %}
                 </select>
             </div>
             <div class="form-group">
@@ -51,18 +52,40 @@
         <div class="form-actions">
             <button type="submit" class="btn btn-primary">Guardar cambios</button>
             <a href="{{ url_for('requerimientos.detalle', id=req.id) }}" class="btn btn-secondary">Cancelar</a>
-            <form method="post" action="{{ url_for('requerimientos.eliminar', id=req.id) }}" style="display:inline"
-                  onsubmit="return confirm('¿Eliminar requerimiento?')">
-                <button type="submit" class="btn btn-danger">Eliminar</button>
-            </form>
         </div>
+    </form>
+    <form method="post" action="{{ url_for('requerimientos.eliminar', id=req.id) }}" style="display:inline"
+          onsubmit="return confirm('¿Eliminar requerimiento?')">
+        <button type="submit" class="btn btn-danger">Eliminar</button>
     </form>
 </div>
 {% endblock %}
 {% block scripts %}
 <script>
-document.getElementById('sel_tipo').addEventListener('change', function(){
+const selTipo = document.getElementById('sel_tipo');
+const previewIdentificador = document.getElementById('preview_identificador');
+const avisoId = document.getElementById('aviso_id');
+const tipoOriginal = '{{ req.tipo }}';
+const idOriginal = '{{ req.identificador }}';
+const proyectoIdActual = {{ req.proyecto_id }};
+
+function actualizarPreviewId() {
+    if (selTipo.value === tipoOriginal) {
+        previewIdentificador.value = idOriginal;
+        avisoId.style.display = 'none';
+        return;
+    }
+    fetch(`{{ url_for('requerimientos.siguiente_id') }}?proyecto_id=${proyectoIdActual}&tipo=${selTipo.value}`)
+        .then(r => r.json())
+        .then(data => {
+            previewIdentificador.value = data.identificador || '—';
+            avisoId.style.display = '';
+        });
+}
+
+selTipo.addEventListener('change', function(){
     document.getElementById('g_cat').style.display = this.value === 'no_funcional' ? '' : 'none';
+    actualizarPreviewId();
 });
 </script>
 {% endblock %}

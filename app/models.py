@@ -75,6 +75,8 @@ class CasoUso(db.Model):
         lazy='dynamic'
     )
 
+    historial = db.relationship('HistorialCasoUso', backref='caso_uso', lazy='dynamic', cascade='all, delete-orphan')
+
 
 class Trazabilidad(db.Model):
     __tablename__ = 'trazabilidad'
@@ -94,6 +96,16 @@ class HistorialCambio(db.Model):
     __tablename__ = 'historial_cambios'
     id = db.Column(db.Integer, primary_key=True)
     requerimiento_id = db.Column(db.Integer, db.ForeignKey('requerimientos.id'), nullable=False)
+    campo_modificado = db.Column(db.String(80))
+    valor_anterior = db.Column(db.Text)
+    valor_nuevo = db.Column(db.Text)
+    descripcion = db.Column(db.String(255))
+    fecha = db.Column(db.DateTime, default=now_peru)
+
+class HistorialCasoUso(db.Model):
+    __tablename__ = 'historial_casos_uso'
+    id = db.Column(db.Integer, primary_key=True)
+    caso_uso_id = db.Column(db.Integer, db.ForeignKey('casos_uso.id'), nullable=False)
     campo_modificado = db.Column(db.String(80))
     valor_anterior = db.Column(db.Text)
     valor_nuevo = db.Column(db.Text)

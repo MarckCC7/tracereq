@@ -37,4 +37,23 @@
     <p style="color:#999">Sin requerimientos asociados. <a href="{{ url_for('casos_uso.editar', id=cu.id) }}">Editar</a></p>
     {% endif %}
 </div>
+<div class="card">
+    <h2 style="margin-bottom:.75rem"><i class="fas fa-clock-rotate-left"></i> Historial de Cambios</h2>
+    {% if historial %}
+    <table>
+        <thead><tr><th>Fecha</th><th>Campo</th><th>Anterior</th><th>Nuevo</th><th>Motivo</th></tr></thead>
+        <tbody>
+        {% for h in historial %}
+        <tr>
+            <td style="color:#666;font-size:.8rem;white-space:nowrap">{{ h.fecha.strftime('%d/%m/%Y %H:%M') }}</td>
+            <td><code style="font-size:.8rem">{{ h.campo_modificado }}</code></td>
+            <td style="color:#666;font-size:.875rem">{{ h.valor_anterior or '-' }}</td>
+            <td style="font-size:.875rem">{{ h.valor_nuevo or '-' }}</td>
+            <td style="color:#666;font-size:.875rem">{{ h.descripcion or '-' }}</td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    {% else %}<p style="color:#999">Sin historial.</p>{% endif %}
+</div>
 {% endblock %}

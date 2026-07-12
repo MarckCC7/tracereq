@@ -32,13 +32,13 @@
     </div>
     {% endif %}
     <div class="card">
-        <h2 style="margin-bottom:.75rem">Requerimientos ↔ Casos de Uso</h2>
+        <h2 style="margin-bottom:.75rem">Requerimientos Funcionales ↔ Casos de Uso</h2>
         {% if reqs and casos %}
         <div style="overflow-x:auto">
         <table>
             <thead>
                 <tr>
-                    <th>Requerimiento</th><th>Tipo</th>
+                    <th>Requerimiento</th>
                     {% for cu in casos %}<th style="text-align:center;font-size:.75rem">{{ cu.identificador }}</th>{% endfor %}
                     <th>Cobertura</th>
                 </tr>
@@ -46,24 +46,21 @@
             <tbody>
             {% for r in reqs %}
                 {% set cu_ids = matriz_data.get(r.id) or [] %}
-                <tr {% if r.tipo == 'funcional' and not cu_ids %}style="background:#fff8e1"{% endif %}>
+                <tr {% if not cu_ids %}style="background:#fff8e1"{% endif %}>
                     <td><a href="{{ url_for('requerimientos.detalle', id=r.id) }}"><strong>{{ r.identificador }}</strong></a></td>
-                    <td><span class="badge badge-{{ r.tipo }}" style="font-size:.68rem">{{ 'F' if r.tipo == 'funcional' else 'NF' }}</span></td>
                     {% for cu in casos %}
                     <td style="text-align:center;color:#2e7d32;font-weight:600">{% if cu.id in cu_ids %}✓{% endif %}</td>
                     {% endfor %}
                     <td>
-                        {% if r.tipo == 'funcional' %}
-                            {% if cu_ids %}<span style="color:#2e7d32;font-size:.85rem">{{ cu_ids|length }} CU</span>
-                            {% else %}<span style="color:#c62828;font-size:.85rem">Sin CU</span>{% endif %}
-                        {% else %}<span style="color:#aaa;font-size:.85rem">—</span>{% endif %}
+                        {% if cu_ids %}<span style="color:#2e7d32;font-size:.85rem">{{ cu_ids|length }} CU</span>
+                        {% else %}<span style="color:#c62828;font-size:.85rem">Sin CU</span>{% endif %}
                     </td>
                 </tr>
             {% endfor %}
             </tbody>
         </table>
         </div>
-        {% elif not reqs %}<p style="color:#999">Sin requerimientos.</p>
+        {% elif not reqs %}<p style="color:#999">Sin requerimientos funcionales.</p>
         {% else %}<p style="color:#999">Sin casos de uso.</p>{% endif %}
     </div>
     <div class="card">

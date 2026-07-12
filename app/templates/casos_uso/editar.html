@@ -33,6 +33,10 @@
                 {% endfor %}
             </div>
         </div>
+        <div class="form-group">
+            <label>Motivo del cambio</label>
+            <input type="text" name="descripcion_cambio" class="form-control">
+        </div>
         <div class="form-actions">
             <button type="submit" class="btn btn-primary">Guardar</button>
             <a href="{{ url_for('casos_uso.detalle', id=cu.id) }}" class="btn btn-secondary">Cancelar</a>

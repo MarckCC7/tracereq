@@ -19,7 +19,7 @@
             </div>
             <div class="form-group">
                 <label>Tipo *</label>
-                <select name="tipo" id="sel_tipo" class="form-control" required>
+                <select name="tipo" id="sel_tipo" class="form-control" required disabled>
                     <option value="">- Seleccionar -</option>
                     <option value="funcional">Funcional</option>
                     <option value="no_funcional">No Funcional</option>
@@ -31,9 +31,9 @@
             </div>
             <div class="form-group" id="g_cat" style="display:none">
                 <label>Categoría</label>
-                <select name="categoria" class="form-control">
+                <select name="categoria" class="form-control" id="sel_categoria" disabled>
                     <option value="">- Seleccionar -</option>
-                    {% for c in categorias %}<option value="{{ c }}">{{ c }}</option>{% endfor %}
+                    {% for c in categorias %}<option value="{{ c }}">{{ c|capitalize }}</option>{% endfor %}
                 </select>
             </div>
             <div class="form-group">
@@ -69,6 +69,7 @@
 <script>
 const selProyecto = document.getElementById('sel_proyecto');
 const selTipo = document.getElementById('sel_tipo');
+const selCategoria = document.getElementById('sel_categoria');
 const previewIdentificador = document.getElementById('preview_identificador');
 
 function actualizarPreviewId() {
@@ -83,10 +84,24 @@ function actualizarPreviewId() {
         .then(data => { previewIdentificador.value = data.identificador || '—'; });
 }
 
-selTipo.addEventListener('change', function(){
-    document.getElementById('g_cat').style.display = this.value === 'no_funcional' ? '' : 'none';
+function actualizarCascada() {
+    const proyectoOk = !!selProyecto.value;
+    selTipo.disabled = !proyectoOk;
+    if (!proyectoOk) { selTipo.value = ''; }
+
+    const tipoOk = proyectoOk && !!selTipo.value;
+    const esNoFuncional = tipoOk && selTipo.value === 'no_funcional';
+    document.getElementById('g_cat').style.display = esNoFuncional ? '' : 'none';
+    selCategoria.disabled = !esNoFuncional;
+    if (!esNoFuncional) { selCategoria.value = ''; }
+
     actualizarPreviewId();
-});
-selProyecto.addEventListener('change', actualizarPreviewId);
+}
+
+selProyecto.addEventListener('change', actualizarCascada);
+selTipo.addEventListener('change', actualizarCascada);
+
+// Si el proyecto ya viene preseleccionado (ej. llegando desde la vista de un proyecto), habilitar Tipo de una vez.
+if (selProyecto.value) { actualizarCascada(); }
 </script>
 {% endblock %}

@@ -97,12 +97,18 @@ def editar(id):
     proyectos = Proyecto.query.all()
     if request.method == 'POST':
         desc_cambio = request.form.get('descripcion_cambio', '').strip() or 'Actualización'
-        campos = {'tipo': request.form.get('tipo', ''), 'descripcion': request.form.get('descripcion', '').strip(),
-                  'prioridad': request.form.get('prioridad', ''), 'estado': request.form.get('estado', '')}
+        nuevo_tipo = request.form.get('tipo', '')
+        nueva_categoria = request.form.get('categoria') if nuevo_tipo == 'no_funcional' else None
+        nuevo_identificador = req.identificador
+        if nuevo_tipo != req.tipo:
+            nuevo_identificador = _generar_identificador(req.proyecto_id, nuevo_tipo)
+        campos = {'tipo': nuevo_tipo, 'identificador': nuevo_identificador,
+                  'descripcion': request.form.get('descripcion', '').strip(),
+                  'prioridad': request.form.get('prioridad', ''), 'estado': request.form.get('estado', ''),
+                  'categoria': nueva_categoria}
         for campo, nuevo_val in campos.items():
             _registrar_cambio(req.id, campo, getattr(req, campo), nuevo_val, desc_cambio)
             setattr(req, campo, nuevo_val)
-        req.categoria = request.form.get('categoria') if req.tipo == 'no_funcional' else None
         req.fecha_actualizacion = now_peru()
         db.session.commit()
         flash('Requerimiento actualizado.', 'success')

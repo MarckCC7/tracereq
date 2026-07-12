@@ -58,6 +58,7 @@
 {% endblock %}
 {% block scripts %}
 <script>
+const selProyecto = document.getElementById('sel_proyecto');
 const previewIdentificador = document.getElementById('preview_identificador');
 
 function actualizarPreviewId(proyectoId) {
@@ -67,7 +68,7 @@ function actualizarPreviewId(proyectoId) {
         .then(data => { previewIdentificador.value = data.identificador || '—'; });
 }
 
-document.getElementById('sel_proyecto').addEventListener('change', function() {
+selProyecto.addEventListener('change', function() {
     const pid = this.value;
     actualizarPreviewId(pid);
     if (!pid) return;
@@ -81,5 +82,8 @@ document.getElementById('sel_proyecto').addEventListener('change', function() {
             ).join('');
         });
 });
+
+// Si el proyecto ya viene preseleccionado (ej. llegando desde la vista de un proyecto), calcular el preview de una vez.
+if (selProyecto.value) { actualizarPreviewId(selProyecto.value); }
 </script>
 {% endblock %}
