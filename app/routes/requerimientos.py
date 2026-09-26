@@ -9,6 +9,15 @@ CATEGORIAS_NF = ['rendimiento', 'seguridad', 'usabilidad', 'confiabilidad', 'man
 
 PREFIJOS_TIPO = {'funcional': 'RF', 'no_funcional': 'RNF'}
 
+# Ordenamientos disponibles en el listado (clave -> columnas)
+ORDENES = {
+    'id':        (Requerimiento.identificador,),
+    'id_desc':   (Requerimiento.identificador.desc(),),
+    'prioridad': (db.case({'alta': 0, 'media': 1, 'baja': 2}, value=Requerimiento.prioridad), Requerimiento.identificador),
+    'estado':    (Requerimiento.estado, Requerimiento.identificador),
+    'recientes': (Requerimiento.fecha_actualizacion.desc(),),
+}
+
 def _generar_identificador(proyecto_id, tipo):
     existentes = [r.identificador for r in
                   Requerimiento.query.filter_by(proyecto_id=proyecto_id, tipo=tipo).all()]
@@ -39,9 +48,11 @@ def lista():
     if busqueda:
         query = query.filter(db.or_(Requerimiento.identificador.ilike(f'%{busqueda}%'),
                                     Requerimiento.descripcion.ilike(f'%{busqueda}%')))
-    reqs = query.order_by(Requerimiento.identificador).all()
+    orden = request.args.get('orden', 'id')
+    orden_sql = ORDENES.get(orden, ORDENES['id'])
+    reqs = query.order_by(*orden_sql).all()
     filtros = {'estado': estado, 'prioridad': prioridad, 'tipo': tipo,
-               'categoria': categoria, 'q': busqueda, 'proyecto_id': proyecto_id}
+               'categoria': categoria, 'q': busqueda, 'proyecto_id': proyecto_id, 'orden': orden}
     return render_template('requerimientos/lista.html', reqs=reqs, proyectos=proyectos,
                            proyecto_id=proyecto_id, categorias=CATEGORIAS_NF, filtros=filtros)
 

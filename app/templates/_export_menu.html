@@ -1,8 +1,12 @@
-{% macro export_menu(proyecto_id, size='') %}
+{% macro export_menu(proyecto_id, size='', icon_only=False) %}
 <div class="dropdown">
+    {% if icon_only %}
+    <button type="button" class="icon-btn" title="Exportar" data-dropdown-toggle><i class="fas fa-download"></i></button>
+    {% else %}
     <button type="button" class="btn btn-secondary {{ size }}" data-dropdown-toggle>
-        <i class="fas fa-download"></i> Exportar <i class="fas fa-caret-down"></i>
+        <i class="fas fa-download"></i> Exportar <i class="fas fa-chevron-down" style="font-size:.7em"></i>
     </button>
+    {% endif %}
     <div class="dropdown-menu">
         <div class="dropdown-header">Versión actual</div>
         <a href="{{ url_for('exportar.exportar_csv', proyecto_id=proyecto_id) }}"><i class="fas fa-file-csv"></i> CSV</a>

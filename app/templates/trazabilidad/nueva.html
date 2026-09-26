@@ -1,11 +1,11 @@
 {% extends "base.html" %}
+{% from '_ui.html' import page_header %}
 {% block title %}Nueva Relación{% endblock %}
 {% block content %}
-<div class="page-header">
-    <h1>Nueva Relación de Trazabilidad</h1>
-    <a href="{{ url_for('trazabilidad.matriz') }}" class="btn btn-secondary">Volver</a>
-</div>
-<div class="card" style="max-width:700px">
+{% call page_header('fas fa-link', 'Nueva Relación', 'Vincula dos requerimientos: depende de, refina o contradice.', 'Trazabilidad', 'tile-orange') %}
+    <a href="{{ url_for('trazabilidad.matriz') }}" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Volver</a>
+{% endcall %}
+<div class="card form-card">
     <form method="post">
         <div class="form-group">
             <label>Proyecto *</label>
@@ -16,7 +16,7 @@
                 {% endfor %}
             </select>
         </div>
-        <div style="display:grid;grid-template-columns:1fr auto 1fr;gap:1rem;align-items:end">
+        <div class="form-grid rel-grid">
             <div class="form-group">
                 <label>Requerimiento Origen *</label>
                 <select name="origen_id" id="sel_origen" class="form-control" required>
@@ -44,7 +44,7 @@
             <input type="text" name="descripcion" class="form-control" placeholder="Notas opcionales sobre esta relación...">
         </div>
         <div class="form-actions">
-            <button type="submit" class="btn btn-primary">Crear relación</button>
+            <button type="submit" class="btn btn-primary"><i class="fas fa-check"></i> Crear relación</button>
             <a href="{{ url_for('trazabilidad.matriz', proyecto_id=proyecto_id) }}" class="btn btn-secondary">Cancelar</a>
         </div>
     </form>

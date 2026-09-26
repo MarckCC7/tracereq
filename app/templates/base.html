@@ -3,33 +3,76 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}TraceReq{% endblock %}</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <title>{% block title %}TraceReq{% endblock %} · TraceReq</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body>
-    <nav>
-        <a class="nav-brand" href="{{ url_for('dashboard.index') }}" style="text-decoration:none">
-            <i class="fas fa-project-diagram"></i> TraceReq
+{% set ep = request.endpoint or '' %}
+<div class="app">
+    <aside class="sidebar" id="sidebar">
+        <a class="brand" href="{{ url_for('dashboard.index') }}">
+            <span class="brand-mark"><i class="fas fa-diagram-project"></i></span> TraceReq
         </a>
-        <ul class="nav-links">
-            <li><a href="{{ url_for('dashboard.index') }}" {% if request.endpoint == 'dashboard.index' %}class="active"{% endif %}><i class="fas fa-home"></i> Inicio</a></li>
-            <li><a href="{{ url_for('proyectos.lista') }}" {% if 'proyectos' in request.endpoint %}class="active"{% endif %}><i class="fas fa-folder"></i> Proyectos</a></li>
-            <li><a href="{{ url_for('requerimientos.lista') }}" {% if 'requerimientos' in request.endpoint %}class="active"{% endif %}><i class="fas fa-list-check"></i> Requerimientos</a></li>
-            <li><a href="{{ url_for('casos_uso.lista') }}" {% if 'casos_uso' in request.endpoint %}class="active"{% endif %}><i class="fas fa-users"></i> Casos de Uso</a></li>
-            <li><a href="{{ url_for('trazabilidad.matriz') }}" {% if 'trazabilidad' in request.endpoint %}class="active"{% endif %}><i class="fas fa-table"></i> Trazabilidad</a></li>
+        <ul class="side-nav">
+            <li><a href="{{ url_for('dashboard.index') }}" {% if ep.startswith('dashboard') %}class="active"{% endif %}><i class="fas fa-house"></i> Inicio</a></li>
+            <li><a href="{{ url_for('proyectos.lista') }}" {% if ep.startswith('proyectos') %}class="active"{% endif %}><i class="far fa-folder"></i> Proyectos</a></li>
+            <li><a href="{{ url_for('requerimientos.lista') }}" {% if ep.startswith('requerimientos') %}class="active"{% endif %}><i class="fas fa-list-ul"></i> Requerimientos</a></li>
+            <li><a href="{{ url_for('casos_uso.lista') }}" {% if ep.startswith('casos_uso') %}class="active"{% endif %}><i class="fas fa-users"></i> Casos de Uso</a></li>
+            <li><a href="{{ url_for('trazabilidad.matriz') }}" {% if ep.startswith('trazabilidad') %}class="active"{% endif %}><i class="fas fa-table-cells-large"></i> Trazabilidad</a></li>
         </ul>
-    </nav>
-    <div class="container">
-        {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}{% for cat, msg in messages %}
-        <div class="alert alert-{{ cat }}">{{ msg }}</div>
-        {% endfor %}{% endif %}
-        {% endwith %}
-        {% block content %}{% endblock %}
+        <div class="side-label">Análisis</div>
+        <ul class="side-nav">
+            <li><a href="{{ url_for('requerimientos.sin_cobertura') }}" {% if ep == 'requerimientos.sin_cobertura' %}class="active"{% endif %}><i class="fas fa-triangle-exclamation"></i> Sin cobertura</a></li>
+            <li><a href="{{ url_for('trazabilidad.grafo') }}" {% if ep == 'trazabilidad.grafo' %}class="active"{% endif %}><i class="fas fa-circle-nodes"></i> Grafo</a></li>
+        </ul>
+        <div class="side-promo">
+            <i class="fas fa-file-signature"></i>
+            <strong>Gestión de requerimientos con trazabilidad</strong>
+            <p>Convierte tus requisitos en software de calidad.</p>
+        </div>
+    </aside>
+    <div class="backdrop" data-nav-close></div>
+
+    <div class="main">
+        <header class="topbar">
+            <button type="button" class="menu-toggle" data-nav-toggle aria-label="Abrir menú"><i class="fas fa-bars"></i></button>
+            <form class="search" method="get" action="{{ url_for('requerimientos.lista') }}" role="search">
+                <i class="fas fa-magnifying-glass"></i>
+                <input type="search" name="q" id="global-search" placeholder="Buscar requerimientos por ID o descripción..." value="{{ request.args.get('q', '') if ep == 'requerimientos.lista' else '' }}">
+                <kbd>Ctrl + K</kbd>
+            </form>
+            <div class="topbar-actions">
+                <div class="dropdown">
+                    <button type="button" class="btn btn-primary" data-dropdown-toggle><i class="fas fa-plus"></i> <span>Crear</span></button>
+                    <div class="dropdown-menu">
+                        <a href="{{ url_for('proyectos.nuevo') }}"><i class="far fa-folder"></i> Proyecto</a>
+                        <a href="{{ url_for('requerimientos.nuevo') }}"><i class="fas fa-list-ul"></i> Requerimiento</a>
+                        <a href="{{ url_for('casos_uso.nuevo') }}"><i class="fas fa-users"></i> Caso de uso</a>
+                        <a href="{{ url_for('trazabilidad.nueva') }}"><i class="fas fa-link"></i> Relación</a>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <div class="container">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}{% for cat, msg in messages %}
+            <div class="alert alert-{{ cat }}">
+                <i class="fas {{ {'success':'fa-circle-check','danger':'fa-circle-exclamation','warning':'fa-triangle-exclamation'}.get(cat, 'fa-circle-info') }}"></i>
+                {{ msg }}
+            </div>
+            {% endfor %}{% endif %}
+            {% endwith %}
+            {% block content %}{% endblock %}
+        </div>
+        <footer>TraceReq &mdash; Plataforma de Gestión de Requerimientos con Trazabilidad</footer>
     </div>
-    <footer><p>TraceReq &mdash; Plataforma de Gestión de Requerimientos con Trazabilidad</p></footer>
-    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
-    {% block scripts %}{% endblock %}
+</div>
+<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+{% block scripts %}{% endblock %}
 </body>
 </html>

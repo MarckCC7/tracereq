@@ -1,17 +1,17 @@
 {% extends "base.html" %}
+{% from '_ui.html' import page_header %}
 {% block title %}Editar {{ req.identificador }}{% endblock %}
 {% block content %}
-<div class="page-header">
-    <h1>Editar: {{ req.identificador }}</h1>
-    <a href="{{ url_for('requerimientos.detalle', id=req.id) }}" class="btn btn-secondary">Volver</a>
-</div>
-<div class="card" style="max-width:700px">
+{% call page_header('fas fa-pen', req.identificador, 'Cada cambio queda registrado en el historial.', 'Editar requerimiento', 'tile-green') %}
+    <a href="{{ url_for('requerimientos.detalle', id=req.id) }}" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Volver</a>
+{% endcall %}
+<div class="card form-card">
     <form method="post">
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem">
+        <div class="form-grid">
             <div class="form-group">
                 <label>Identificador</label>
                 <input type="text" class="form-control" id="preview_identificador" value="{{ req.identificador }}" readonly disabled>
-                <small class="form-text" id="aviso_id" style="display:none;color:#e65100">Se reasignará al guardar.</small>
+                <small class="form-text" id="aviso_id" style="display:none;color:var(--amber)">Se reasignará al guardar.</small>
             </div>
             <div class="form-group">
                 <label>Tipo</label>
@@ -50,11 +50,15 @@
             <input type="text" name="descripcion_cambio" class="form-control">
         </div>
         <div class="form-actions">
-            <button type="submit" class="btn btn-primary">Guardar cambios</button>
+            <button type="submit" class="btn btn-primary"><i class="fas fa-check"></i> Guardar cambios</button>
             <a href="{{ url_for('requerimientos.detalle', id=req.id) }}" class="btn btn-secondary">Cancelar</a>
         </div>
     </form>
-    <form method="post" action="{{ url_for('requerimientos.eliminar', id=req.id) }}" style="display:inline"
+</div>
+<div class="card form-card banner banner-danger" style="padding:1rem 1.2rem">
+    <div class="banner-icon"><i class="far fa-trash-can"></i></div>
+    <div><strong>Eliminar requerimiento</strong><p>Se borrarán también su historial, comentarios y relaciones.</p></div>
+    <form method="post" action="{{ url_for('requerimientos.eliminar', id=req.id) }}" class="inline-form" style="margin-left:auto"
           onsubmit="return confirm('¿Eliminar requerimiento?')">
         <button type="submit" class="btn btn-danger">Eliminar</button>
     </form>

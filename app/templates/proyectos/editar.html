@@ -1,11 +1,11 @@
 {% extends "base.html" %}
+{% from '_ui.html' import page_header %}
 {% block title %}Editar Proyecto{% endblock %}
 {% block content %}
-<div class="page-header">
-    <h1>Editar: {{ proyecto.nombre }}</h1>
-    <a href="{{ url_for('proyectos.detalle', id=proyecto.id) }}" class="btn btn-secondary">Volver</a>
-</div>
-<div class="card" style="max-width:600px">
+{% call page_header('fas fa-pen', proyecto.nombre, 'Actualiza el nombre o la descripción del proyecto.', 'Editar proyecto', '') %}
+    <a href="{{ url_for('proyectos.detalle', id=proyecto.id) }}" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Volver</a>
+{% endcall %}
+<div class="card form-card">
     <form method="post">
         <div class="form-group">
             <label>Nombre *</label>
@@ -16,7 +16,7 @@
             <textarea name="descripcion" class="form-control" rows="3">{{ proyecto.descripcion or '' }}</textarea>
         </div>
         <div class="form-actions">
-            <button type="submit" class="btn btn-primary">Guardar</button>
+            <button type="submit" class="btn btn-primary"><i class="fas fa-check"></i> Guardar</button>
             <a href="{{ url_for('proyectos.detalle', id=proyecto.id) }}" class="btn btn-secondary">Cancelar</a>
         </div>
     </form>

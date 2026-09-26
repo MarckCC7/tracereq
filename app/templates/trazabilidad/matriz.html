@@ -1,97 +1,138 @@
 {% extends "base.html" %}
 {% from '_export_menu.html' import export_menu %}
+{% from '_badges.html' import badge_relacion %}
+{% from '_ui.html' import page_header, stat %}
 {% block title %}Matriz de Trazabilidad{% endblock %}
 {% block content %}
-<div class="page-header">
-    <h1><i class="fas fa-table"></i> Matriz de Trazabilidad</h1>
+{% call page_header('fas fa-table-cells-large', 'Matriz de Trazabilidad', 'Relaciones entre requerimientos funcionales y casos de uso de tu proyecto.', 'Trazabilidad', 'tile-purple') %}
     {% if proyecto_id %}
-    <div style="display:flex;gap:.5rem;flex-wrap:wrap">
-        <a href="{{ url_for('trazabilidad.grafo', proyecto_id=proyecto_id) }}" class="btn btn-secondary"><i class="fas fa-diagram-project"></i> Ver Grafo</a>
-        <a href="{{ url_for('trazabilidad.nueva', proyecto_id=proyecto_id) }}" class="btn btn-primary"><i class="fas fa-plus"></i> Nueva relación</a>
-        {{ export_menu(proyecto_id) }}
-    </div>
+    <a href="{{ url_for('trazabilidad.grafo', proyecto_id=proyecto_id) }}" class="btn btn-dark"><i class="fas fa-circle-nodes"></i> Ver grafo</a>
+    <a href="{{ url_for('trazabilidad.nueva', proyecto_id=proyecto_id) }}" class="btn btn-primary"><i class="fas fa-plus"></i> Nueva relación</a>
+    {{ export_menu(proyecto_id) }}
     {% endif %}
-</div>
-<div class="card" style="padding:.75rem 1rem;margin-bottom:1rem;background:#f9f9f9">
-    <form method="get" style="display:flex;gap:.75rem;align-items:flex-end">
-        <div>
-            <label style="display:block;font-size:.78rem;font-weight:600;margin-bottom:.2rem">Proyecto</label>
-            <select name="proyecto_id" class="form-control" style="width:auto" onchange="this.form.submit()">
-                <option value="">— Seleccionar —</option>
-                {% for p in proyectos %}
-                <option value="{{ p.id }}" {% if proyecto_id == p.id %}selected{% endif %}>{{ p.nombre }}</option>
-                {% endfor %}
-            </select>
-        </div>
+{% endcall %}
+
+<div class="grid mb" style="grid-template-columns:repeat(auto-fit,minmax(300px,1fr));align-items:stretch">
+    <form method="get" class="card" style="display:flex;align-items:center;gap:1rem;margin:0">
+        <label class="filter-label" style="margin:0;white-space:nowrap"><i class="far fa-folder"></i> Proyecto</label>
+        <select name="proyecto_id" class="form-control" onchange="this.form.submit()">
+            <option value="">— Seleccionar —</option>
+            {% for p in proyectos %}
+            <option value="{{ p.id }}" {% if proyecto_id == p.id %}selected{% endif %}>{{ p.nombre }}</option>
+            {% endfor %}
+        </select>
     </form>
-</div>
-{% if proyecto_id %}
-    {% if contradicciones %}
-    <div class="alert alert-danger"><strong><i class="fas fa-circle-exclamation"></i> Contradicciones detectadas:</strong>
-        {% for c in contradicciones %} {{ c.origen.identificador }} ↔ {{ c.destino.identificador }}{% if not loop.last %},{% endif %}{% endfor %}
+    {% if proyecto_id and contradicciones %}
+    <div class="banner banner-danger">
+        <div class="banner-icon"><i class="fas fa-exclamation"></i></div>
+        <div>
+            <strong>Contradicciones detectadas:
+                {% for c in contradicciones %}{{ c.origen.identificador }} → {{ c.destino.identificador }}{% if not loop.last %}, {% endif %}{% endfor %}</strong>
+            <p>Hay requerimientos que se contradicen entre sí.</p>
+        </div>
+        <a href="#relaciones" class="btn btn-sm">Ver detalles <i class="fas fa-arrow-down"></i></a>
     </div>
     {% endif %}
-    <div class="card">
-        <h2 style="margin-bottom:.75rem">Requerimientos Funcionales ↔ Casos de Uso</h2>
+</div>
+
+{% if proyecto_id %}
+<div class="grid grid-main-side mb">
+    <div class="card card-flush">
+        <div class="card-header" style="padding:1.2rem 1.4rem 0">
+            <h2><i class="fas fa-bullseye"></i> Requerimientos funcionales <i class="fas fa-arrow-right" style="font-size:.8em;color:var(--subtle)"></i> Casos de uso</h2>
+        </div>
         {% if reqs and casos %}
-        <div style="overflow-x:auto">
-        <table>
+        <div class="table-wrap">
+        <table class="matrix">
             <thead>
                 <tr>
                     <th>Requerimiento</th>
-                    {% for cu in casos %}<th style="text-align:center;font-size:.75rem">{{ cu.identificador }}</th>{% endfor %}
+                    {% for cu in casos %}<th><a href="{{ url_for('casos_uso.detalle', id=cu.id) }}" title="{{ cu.nombre }}" style="color:inherit">{{ cu.identificador }}</a></th>{% endfor %}
                     <th>Cobertura</th>
                 </tr>
             </thead>
             <tbody>
             {% for r in reqs %}
                 {% set cu_ids = matriz_data.get(r.id) or [] %}
-                <tr {% if not cu_ids %}style="background:#fff8e1"{% endif %}>
-                    <td><a href="{{ url_for('requerimientos.detalle', id=r.id) }}"><strong>{{ r.identificador }}</strong></a></td>
+                <tr {% if not cu_ids %}class="row-warn"{% endif %}>
+                    <td><a class="id-link" href="{{ url_for('requerimientos.detalle', id=r.id) }}" title="{{ r.descripcion }}">{{ r.identificador }}</a></td>
                     {% for cu in casos %}
-                    <td style="text-align:center;color:#2e7d32;font-weight:600">{% if cu.id in cu_ids %}✓{% endif %}</td>
+                    <td>{% if cu.id in cu_ids %}<span class="hit"><i class="fas fa-check"></i></span>{% else %}<span class="miss"></span>{% endif %}</td>
                     {% endfor %}
-                    <td>
-                        {% if cu_ids %}<span style="color:#2e7d32;font-size:.85rem">{{ cu_ids|length }} CU</span>
-                        {% else %}<span style="color:#c62828;font-size:.85rem">Sin CU</span>{% endif %}
-                    </td>
+                    <td>{% if cu_ids %}<span class="cov">{{ cu_ids|length }} CU</span>{% else %}<span class="cov none">Sin CU</span>{% endif %}</td>
                 </tr>
             {% endfor %}
             </tbody>
         </table>
         </div>
-        {% elif not reqs %}<p style="color:#999">Sin requerimientos funcionales.</p>
-        {% else %}<p style="color:#999">Sin casos de uso.</p>{% endif %}
+        {% elif not reqs %}<div class="empty-state"><p>Sin requerimientos funcionales.</p></div>
+        {% else %}<div class="empty-state"><p>Sin casos de uso.</p>
+            <a href="{{ url_for('casos_uso.nuevo', proyecto_id=proyecto_id) }}" class="btn btn-soft btn-sm"><i class="fas fa-plus"></i> Crear caso de uso</a></div>{% endif %}
     </div>
-    <div class="card">
-        <h2 style="margin-bottom:.75rem">Relaciones entre Requerimientos</h2>
-        {% if relaciones_traz %}
-        <table>
-            <thead><tr><th>Origen</th><th>Tipo</th><th>Destino</th><th>Descripción</th><th></th></tr></thead>
-            <tbody>
-            {% for rel in relaciones_traz %}
-            <tr {% if rel.tipo_relacion == 'contradice' %}style="background:#ffebee"{% endif %}>
-                <td><a href="{{ url_for('requerimientos.detalle', id=rel.requerimiento_origen_id) }}">{{ rel.origen.identificador }}</a></td>
-                <td style="font-size:.8rem;padding:.4rem 1rem">
-                    <span style="background:#e3f2fd;padding:.2rem .4rem;border-radius:4px">{{ rel.tipo_relacion.replace('_',' ') }}</span>
-                </td>
-                <td><a href="{{ url_for('requerimientos.detalle', id=rel.requerimiento_destino_id) }}">{{ rel.destino.identificador }}</a></td>
-                <td style="color:#666;font-size:.875rem">{{ rel.descripcion or '—' }}</td>
-                <td>
-                    <form method="post" action="{{ url_for('trazabilidad.eliminar', id=rel.id) }}" style="display:inline"
-                          onsubmit="return confirm('¿Eliminar?')">
-                        <button type="submit" class="btn btn-sm btn-danger">Eliminar</button>
-                    </form>
-                </td>
-            </tr>
-            {% endfor %}
-            </tbody>
-        </table>
-        {% else %}
-        <p style="color:#999">Sin relaciones. <a href="{{ url_for('trazabilidad.nueva', proyecto_id=proyecto_id) }}">Agregar</a></p>
-        {% endif %}
+
+    <div style="display:flex;flex-direction:column;gap:1.1rem">
+        <div class="card" style="margin:0">
+            <div class="card-header"><h2><i class="fas fa-chart-column"></i> Resumen</h2></div>
+            <div class="grid side-stats">
+                {{ stat('far fa-file-lines', reqs|length, 'Funcionales', '', 'blue', compact=True) }}
+                {{ stat('fas fa-link', relaciones_traz|length, 'Relaciones', '', 'purple', compact=True) }}
+                {{ stat('fas fa-check', cobertura_pct ~ '%', 'Cobertura', '', 'green', compact=True) }}
+                {{ stat('fas fa-triangle-exclamation', contradicciones|length, 'Contradicciones', '', 'red' if contradicciones else 'orange', compact=True) }}
+            </div>
+        </div>
+        <div class="card" style="margin:0">
+            <div class="card-header"><h2><i class="fas fa-circle-nodes"></i> Grafo de relaciones</h2>
+                <a class="link-arrow" href="{{ url_for('trazabilidad.grafo', proyecto_id=proyecto_id) }}">Abrir <i class="fas fa-arrow-right"></i></a></div>
+            <div id="grafo-mini" class="graph-preview"></div>
+            <div class="graph-legend">
+                <span><i class="sw" style="background:#2451e6"></i> Funcional</span>
+                <span><i class="sw" style="background:#7c3aed"></i> No funcional</span>
+                <span><i class="ln" style="border-color:#dc2626;border-top-style:dashed"></i> Contradice</span>
+            </div>
+        </div>
     </div>
+</div>
+
+<div class="card card-flush" id="relaciones">
+    <div class="card-header" style="padding:1.2rem 1.4rem 0"><h2><i class="fas fa-link"></i> Relaciones entre requerimientos</h2>
+        <a href="{{ url_for('trazabilidad.nueva', proyecto_id=proyecto_id) }}" class="btn btn-sm btn-soft"><i class="fas fa-plus"></i> Agregar</a></div>
+    {% if relaciones_traz %}
+    <div class="table-wrap">
+    <table>
+        <thead><tr><th data-sort>Origen</th><th data-sort>Tipo</th><th data-sort>Destino</th><th>Descripción</th><th style="text-align:right">Acciones</th></tr></thead>
+        <tbody>
+        {% for rel in relaciones_traz %}
+        <tr {% if rel.tipo_relacion == 'contradice' %}class="row-danger"{% endif %}>
+            <td><a class="id-link" href="{{ url_for('requerimientos.detalle', id=rel.requerimiento_origen_id) }}">{{ rel.origen.identificador }}</a></td>
+            <td>{{ badge_relacion(rel.tipo_relacion) }}</td>
+            <td><a class="id-link" href="{{ url_for('requerimientos.detalle', id=rel.requerimiento_destino_id) }}">{{ rel.destino.identificador }}</a></td>
+            <td class="cell-muted">{{ rel.descripcion or '—' }}</td>
+            <td style="text-align:right">
+                <form method="post" action="{{ url_for('trazabilidad.eliminar', id=rel.id) }}" class="inline-form"
+                      onsubmit="return confirm('¿Eliminar relación?')">
+                    <button type="submit" class="btn btn-sm btn-danger-soft"><i class="far fa-trash-can"></i> Eliminar</button>
+                </form>
+            </td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    </div>
+    {% else %}
+    <div class="empty-state" style="padding:2rem"><p>Sin relaciones todavía.</p></div>
+    {% endif %}
+</div>
 {% else %}
-<div class="empty-state"><p>Selecciona un proyecto para ver la matriz de trazabilidad.</p></div>
+<div class="card empty-state"><i class="fas fa-table-cells-large"></i><p>Selecciona un proyecto para ver su matriz de trazabilidad.</p></div>
+{% endif %}
+{% endblock %}
+{% block scripts %}
+{% if proyecto_id %}
+<script src="https://unpkg.com/vis-network@9.1.9/standalone/umd/vis-network.min.js"></script>
+<script src="{{ url_for('static', filename='js/grafo.js') }}"></script>
+<script>
+TraceGrafo.render(document.getElementById('grafo-mini'),
+    '{{ url_for('trazabilidad.grafo_datos', proyecto_id=proyecto_id) }}', { mini: true });
+</script>
 {% endif %}
 {% endblock %}

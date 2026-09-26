@@ -1,59 +1,60 @@
 {% extends "base.html" %}
+{% from '_ui.html' import page_header %}
 {% block title %}{{ cu.identificador }}{% endblock %}
 {% block content %}
-<div class="page-header">
-    <div>
-        <h1>{{ cu.identificador }} - {{ cu.nombre }}</h1>
-        <p style="color:#666;margin-top:.2rem">{{ cu.proyecto.nombre }}</p>
+{% call page_header('fas fa-users', cu.identificador ~ ' · ' ~ cu.nombre, '', cu.proyecto.nombre, 'tile-purple') %}
+    <form method="post" action="{{ url_for('casos_uso.eliminar', id=cu.id) }}" class="inline-form"
+          onsubmit="return confirm('¿Eliminar?')">
+        <button type="submit" class="btn btn-danger-soft"><i class="far fa-trash-can"></i> Eliminar</button>
+    </form>
+    <a href="{{ url_for('casos_uso.editar', id=cu.id) }}" class="btn btn-primary"><i class="fas fa-pen"></i> Editar</a>
+{% endcall %}
+
+{% set reqs = cu.requerimientos.all() %}
+<div class="grid grid-main-side mb">
+    <div class="card">
+        <div class="card-header"><h2><i class="fas fa-align-left"></i> Descripción</h2></div>
+        {% if cu.descripcion %}<p style="line-height:1.65;color:var(--ink)">{{ cu.descripcion }}</p>
+        {% else %}<p class="text-muted">Sin descripción.</p>{% endif %}
+        <table class="kv" style="margin-top:1.2rem">
+            <tr><th>Actor</th><td>{% if cu.actor %}<span class="badge badge-neutral"><i class="far fa-user"></i> {{ cu.actor }}</span>{% else %}—{% endif %}</td></tr>
+            <tr><th>Creado</th><td>{{ cu.fecha_creacion.strftime('%d/%m/%Y') }}</td></tr>
+        </table>
     </div>
-    <div style="display:flex;gap:.5rem">
-        <a href="{{ url_for('casos_uso.editar', id=cu.id) }}" class="btn btn-secondary">Editar</a>
-        <form method="post" action="{{ url_for('casos_uso.eliminar', id=cu.id) }}" style="display:inline"
-              onsubmit="return confirm('¿Eliminar?')">
-            <button type="submit" class="btn btn-danger">Eliminar</button>
-        </form>
+    <div class="card">
+        <div class="card-header"><h2><i class="far fa-file-lines"></i> Requerimientos <span class="badge badge-neutral">{{ reqs|length }}</span></h2></div>
+        {% if reqs %}
+        <ul class="ref-list">
+            {% for r in reqs %}
+            <li><a href="{{ url_for('requerimientos.detalle', id=r.id) }}"><b>{{ r.identificador }}</b> <span>{{ r.descripcion[:70] }}{% if r.descripcion|length > 70 %}…{% endif %}</span></a></li>
+            {% endfor %}
+        </ul>
+        {% else %}
+        <p class="text-muted">Sin requerimientos asociados.</p>
+        <a href="{{ url_for('casos_uso.editar', id=cu.id) }}" class="btn btn-soft btn-sm" style="margin-top:.8rem"><i class="fas fa-link"></i> Asociar</a>
+        {% endif %}
     </div>
 </div>
-<div class="card">
-    <table style="max-width:400px">
-        <tr><th style="width:120px">Actor</th><td>{{ cu.actor or '-' }}</td></tr>
-        <tr><th>Creado</th><td>{{ cu.fecha_creacion.strftime('%d/%m/%Y') }}</td></tr>
-    </table>
-    {% if cu.descripcion %}
-    <hr style="margin:1rem 0;border:none;border-top:1px solid #eee">
-    <p>{{ cu.descripcion }}</p>
-    {% endif %}
-</div>
-<div class="card">
-    <h2 style="margin-bottom:.75rem">Requerimientos asociados</h2>
-    {% set reqs = cu.requerimientos.all() %}
-    {% if reqs %}
-    <ul style="list-style:none;display:flex;flex-direction:column;gap:.4rem">
-        {% for r in reqs %}
-        <li><a href="{{ url_for('requerimientos.detalle', id=r.id) }}">{{ r.identificador }}</a> - {{ r.descripcion[:60] }}</li>
-        {% endfor %}
-    </ul>
-    {% else %}
-    <p style="color:#999">Sin requerimientos asociados. <a href="{{ url_for('casos_uso.editar', id=cu.id) }}">Editar</a></p>
-    {% endif %}
-</div>
-<div class="card">
-    <h2 style="margin-bottom:.75rem"><i class="fas fa-clock-rotate-left"></i> Historial de Cambios</h2>
+
+<div class="card card-flush">
+    <div class="card-header" style="padding:1.2rem 1.4rem 0"><h2><i class="fas fa-clock-rotate-left"></i> Historial de Cambios</h2></div>
     {% if historial %}
+    <div class="table-wrap">
     <table>
         <thead><tr><th>Fecha</th><th>Campo</th><th>Anterior</th><th>Nuevo</th><th>Motivo</th></tr></thead>
         <tbody>
         {% for h in historial %}
         <tr>
-            <td style="color:#666;font-size:.8rem;white-space:nowrap">{{ h.fecha.strftime('%d/%m/%Y %H:%M') }}</td>
-            <td><code style="font-size:.8rem">{{ h.campo_modificado }}</code></td>
-            <td style="color:#666;font-size:.875rem">{{ h.valor_anterior or '-' }}</td>
-            <td style="font-size:.875rem">{{ h.valor_nuevo or '-' }}</td>
-            <td style="color:#666;font-size:.875rem">{{ h.descripcion or '-' }}</td>
+            <td class="cell-muted" style="white-space:nowrap">{{ h.fecha.strftime('%d/%m/%Y %H:%M') }}</td>
+            <td><code>{{ h.campo_modificado }}</code></td>
+            <td class="cell-muted">{{ h.valor_anterior or '—' }}</td>
+            <td>{{ h.valor_nuevo or '—' }}</td>
+            <td class="cell-muted">{{ h.descripcion or '—' }}</td>
         </tr>
         {% endfor %}
         </tbody>
     </table>
-    {% else %}<p style="color:#999">Sin historial.</p>{% endif %}
+    </div>
+    {% else %}<div class="empty-state" style="padding:2rem"><p>Sin historial.</p></div>{% endif %}
 </div>
 {% endblock %}

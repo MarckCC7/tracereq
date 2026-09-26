@@ -1,33 +1,77 @@
 {% extends "base.html" %}
+{% from '_ui.html' import page_header, stat %}
+{% from '_export_menu.html' import export_menu %}
 {% block title %}Proyectos{% endblock %}
 {% block content %}
-<div class="page-header">
-    <h1>Proyectos</h1>
-    <a href="{{ url_for('proyectos.nuevo') }}" class="btn btn-primary">+ Nuevo proyecto</a>
+{% call page_header('far fa-folder', 'Proyectos', 'Crea, visualiza y administra tus proyectos de requerimientos, casos de uso y trazabilidad.', 'Proyectos') %}
+    <a href="{{ url_for('proyectos.nuevo') }}" class="btn btn-dark btn-lg"><i class="fas fa-plus"></i> Nuevo proyecto</a>
+{% endcall %}
+
+<div class="grid grid-4 mb">
+    {{ stat('far fa-folder', proyectos|length, 'Proyecto' if proyectos|length == 1 else 'Proyectos', 'Total registrados', 'blue') }}
+    {{ stat('far fa-file-lines', resumen.reqs, 'Requerimientos', 'En todos los proyectos', 'green', url_for('requerimientos.lista')) }}
+    {{ stat('fas fa-users', resumen.casos, 'Casos de uso', 'En todos los proyectos', 'purple', url_for('casos_uso.lista')) }}
+    {{ stat('fas fa-link', resumen.relaciones, 'Relaciones', 'De trazabilidad', 'orange', url_for('trazabilidad.matriz')) }}
 </div>
-{% if proyectos %}
+
 <div class="card">
-    <table>
-        <thead><tr><th>Nombre</th><th>Descripción</th><th>Creado</th><th>Acciones</th></tr></thead>
+    <div class="card-header">
+        <div style="display:flex;gap:.9rem;align-items:center">
+            <span class="icon-tile sm tile-soft-blue"><i class="fas fa-table-list"></i></span>
+            <div><h2>Lista de Proyectos</h2><div class="sub">Todos tus proyectos registrados en TraceReq.</div></div>
+        </div>
+        {% if proyectos %}
+        <div class="input-icon" style="min-width:240px">
+            <i class="fas fa-magnifying-glass"></i>
+            <input type="search" class="form-control" placeholder="Buscar proyectos..." data-table-filter="#tabla-proyectos">
+        </div>
+        {% endif %}
+    </div>
+    {% if proyectos %}
+    <div class="table-wrap">
+    <table id="tabla-proyectos">
+        <thead><tr>
+            <th data-sort>Nombre</th><th>Descripción</th>
+            <th data-sort style="text-align:center">Req.</th><th data-sort style="text-align:center">CU</th>
+            <th data-sort>Creado</th><th style="text-align:right">Acciones</th>
+        </tr></thead>
         <tbody>
         {% for p in proyectos %}
         <tr>
-            <td><a href="{{ url_for('proyectos.detalle', id=p.id) }}"><strong>{{ p.nombre }}</strong></a></td>
-            <td>{{ (p.descripcion or '')[:60] }}{% if p.descripcion and p.descripcion|length > 60 %}…{% endif %}</td>
-            <td>{{ p.fecha_creacion.strftime('%d/%m/%Y') }}</td>
             <td>
-                <a href="{{ url_for('proyectos.editar', id=p.id) }}" class="btn btn-sm btn-secondary">Editar</a>
-                <form method="post" action="{{ url_for('proyectos.eliminar', id=p.id) }}" style="display:inline"
-                      onsubmit="return confirm('¿Eliminar proyecto y todos sus datos?')">
-                    <button type="submit" class="btn btn-sm btn-danger">Eliminar</button>
-                </form>
+                <a href="{{ url_for('proyectos.detalle', id=p.id) }}" style="display:flex;align-items:center;gap:.75rem" class="id-link">
+                    <span class="icon-tile sm tile-soft-blue"><i class="far fa-folder"></i></span>{{ p.nombre }}
+                </a>
+            </td>
+            <td class="cell-desc cell-muted">{{ (p.descripcion or '—')[:110] }}{% if p.descripcion and p.descripcion|length > 110 %}…{% endif %}</td>
+            <td style="text-align:center"><span class="count-pill">{{ p.requerimientos.count() }}</span></td>
+            <td style="text-align:center"><span class="count-pill" style="background:var(--purple-50);color:var(--purple)">{{ p.casos_uso.count() }}</span></td>
+            <td data-value="{{ p.fecha_creacion.strftime('%Y%m%d%H%M') }}" class="cell-muted">{{ p.fecha_creacion.strftime('%d/%m/%Y') }}</td>
+            <td>
+                <div class="icon-actions" style="justify-content:flex-end">
+                    <a href="{{ url_for('proyectos.detalle', id=p.id) }}" class="icon-btn blue" title="Ver"><i class="far fa-eye"></i></a>
+                    <a href="{{ url_for('proyectos.editar', id=p.id) }}" class="icon-btn purple" title="Editar"><i class="fas fa-pen"></i></a>
+                    {{ export_menu(p.id, icon_only=True) }}
+                    <form method="post" action="{{ url_for('proyectos.eliminar', id=p.id) }}" class="inline-form"
+                          onsubmit="return confirm('¿Eliminar proyecto y todos sus datos?')">
+                        <button type="submit" class="icon-btn red" title="Eliminar"><i class="far fa-trash-can"></i></button>
+                    </form>
+                </div>
             </td>
         </tr>
         {% endfor %}
         </tbody>
     </table>
+    </div>
+    <div class="table-footer" style="margin:0 -1.4rem -1.4rem">
+        <span>Mostrando <b data-filter-count="#tabla-proyectos">{{ proyectos|length }}</b> de {{ proyectos|length }} proyectos</span>
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <i class="far fa-folder-open"></i>
+        <p>No hay proyectos todavía.</p>
+        <a href="{{ url_for('proyectos.nuevo') }}" class="btn btn-primary"><i class="fas fa-plus"></i> Crear el primero</a>
+    </div>
+    {% endif %}
 </div>
-{% else %}
-<div class="empty-state"><p>No hay proyectos. <a href="{{ url_for('proyectos.nuevo') }}">Crear uno</a>.</p></div>
-{% endif %}
 {% endblock %}

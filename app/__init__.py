@@ -24,6 +24,6 @@ def create_app(config_name='default'):
     
     @app.route('/')
     def index():
-        return redirect(url_for('proyectos.lista'))
+        return redirect(url_for('dashboard.index'))
 
     return app

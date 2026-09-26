@@ -1,11 +1,11 @@
 {% extends "base.html" %}
+{% from '_ui.html' import page_header %}
 {% block title %}Nuevo Proyecto{% endblock %}
 {% block content %}
-<div class="page-header">
-    <h1>Nuevo Proyecto</h1>
-    <a href="{{ url_for('proyectos.lista') }}" class="btn btn-secondary">Volver</a>
-</div>
-<div class="card" style="max-width:600px">
+{% call page_header('far fa-folder', 'Nuevo Proyecto', 'Crea un espacio para sus requerimientos, casos de uso y trazabilidad.', 'Proyectos', '') %}
+    <a href="{{ url_for('proyectos.lista') }}" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Volver</a>
+{% endcall %}
+<div class="card form-card">
     <form method="post">
         <div class="form-group">
             <label>Nombre *</label>
@@ -16,7 +16,7 @@
             <textarea name="descripcion" class="form-control" rows="3"></textarea>
         </div>
         <div class="form-actions">
-            <button type="submit" class="btn btn-primary">Crear proyecto</button>
+            <button type="submit" class="btn btn-primary"><i class="fas fa-check"></i> Crear proyecto</button>
             <a href="{{ url_for('proyectos.lista') }}" class="btn btn-secondary">Cancelar</a>
         </div>
     </form>

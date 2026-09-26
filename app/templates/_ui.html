@@ -1,0 +1,27 @@
+{# Encabezado de página con ícono. Las acciones van en el cuerpo de {% call %}. #}
+{% macro page_header(icon, title, subtitle='', eyebrow='', tile='') %}
+<div class="page-header">
+    <div class="page-title">
+        <div class="icon-tile {{ tile }}"><i class="{{ icon }}"></i></div>
+        <div>
+            {% if eyebrow %}<div class="eyebrow">{{ eyebrow }}</div>{% endif %}
+            <h1>{{ title }}</h1>
+            {% if subtitle %}<p>{{ subtitle }}</p>{% endif %}
+        </div>
+    </div>
+    {% if caller %}<div class="page-actions">{{ caller() }}</div>{% endif %}
+</div>
+{% endmacro %}
+
+{# Tarjeta de métrica. color: blue | green | purple | orange | red #}
+{% macro stat(icon, value, label, sub='', color='blue', href=None, compact=False) %}
+<{{ 'a' if href else 'div' }} class="stat stat-{{ color }}{% if compact %} compact{% endif %}"{% if href %} href="{{ href }}"{% endif %}>
+    <div class="icon-tile tile-{{ color }}"><i class="{{ icon }}"></i></div>
+    <div>
+        <div class="stat-value">{{ value }}</div>
+        <div class="stat-label">{{ label }}</div>
+        {% if sub %}<div class="stat-sub">{{ sub }}</div>{% endif %}
+    </div>
+    {% if href %}<span class="stat-go"><i class="fas fa-chevron-right"></i></span>{% endif %}
+</{{ 'a' if href else 'div' }}>
+{% endmacro %}

@@ -1,128 +1,131 @@
 {% extends "base.html" %}
-{% from '_badges.html' import badge_estado, badge_prioridad, badge_tipo %}
+{% from '_badges.html' import badge_estado, badge_prioridad, badge_tipo, badge_relacion %}
+{% from '_ui.html' import page_header %}
 {% block title %}{{ req.identificador }}{% endblock %}
 {% block content %}
-<div class="page-header">
-    <div>
-        <h1><i class="fas fa-file-alt"></i> {{ req.identificador }}</h1>
-        <p style="color:#666;margin-top:.2rem">{{ req.proyecto.nombre }}</p>
-    </div>
-    <div style="display:flex;gap:.5rem;flex-wrap:wrap">
-        <a href="{{ url_for('requerimientos.editar', id=req.id) }}" class="btn btn-secondary"><i class="fas fa-pen"></i> Editar</a>
-        <a href="{{ url_for('trazabilidad.nueva', proyecto_id=req.proyecto_id) }}" class="btn btn-secondary"><i class="fas fa-link"></i> + Relación</a>
-    </div>
-</div>
+{% call page_header('far fa-file-lines', req.identificador, '', req.proyecto.nombre, 'tile-green' if req.tipo == 'funcional' else 'tile-purple') %}
+    <a href="{{ url_for('trazabilidad.nueva', proyecto_id=req.proyecto_id) }}" class="btn btn-secondary"><i class="fas fa-link"></i> Nueva relación</a>
+    <a href="{{ url_for('requerimientos.editar', id=req.id) }}" class="btn btn-primary"><i class="fas fa-pen"></i> Editar</a>
+{% endcall %}
 
-<div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem">
+<div class="grid grid-main-side mb">
     <div class="card">
-        <table>
-            <tr><th style="width:130px">Tipo</th><td>{{ badge_tipo(req.tipo) }}</td></tr>
-            <tr><th>Prioridad</th><td>{{ badge_prioridad(req.prioridad) }}</td></tr>
-            <tr><th>Estado</th><td>{{ badge_estado(req.estado) }}</td></tr>
-            {% if req.categoria %}<tr><th>Categoría</th><td>{{ req.categoria }}</td></tr>{% endif %}
+        <div class="card-header"><h2><i class="fas fa-align-left"></i> Descripción</h2>
+            <div style="display:flex;gap:.4rem;flex-wrap:wrap">{{ badge_tipo(req.tipo) }} {{ badge_prioridad(req.prioridad) }} {{ badge_estado(req.estado) }}</div>
+        </div>
+        <p style="line-height:1.65;font-size:1rem;color:var(--ink)">{{ req.descripcion }}</p>
+        <table class="kv" style="margin-top:1.2rem">
+            {% if req.categoria %}<tr><th>Categoría</th><td style="text-transform:capitalize">{{ req.categoria }}</td></tr>{% endif %}
             <tr><th>Creado</th><td>{{ req.fecha_creacion.strftime('%d/%m/%Y %H:%M') }}</td></tr>
             <tr><th>Actualizado</th><td>{{ req.fecha_actualizacion.strftime('%d/%m/%Y %H:%M') }}</td></tr>
         </table>
-        <hr style="margin:1rem 0;border:none;border-top:1px solid #eee">
-        <strong>Descripción</strong>
-        <p style="margin-top:.4rem;line-height:1.6">{{ req.descripcion }}</p>
     </div>
     <div class="card">
-        <h2 style="margin-bottom:.75rem">Casos de Uso</h2>
+        <div class="card-header"><h2><i class="fas fa-users"></i> Casos de Uso</h2></div>
         {% set casos = req.casos_uso.all() %}
         {% if casos %}
-        <ul style="list-style:none;display:flex;flex-direction:column;gap:.4rem">
-            {% for cu in casos %}<li><a href="{{ url_for('casos_uso.detalle', id=cu.id) }}">{{ cu.identificador }} - {{ cu.nombre }}</a></li>{% endfor %}
+        <ul class="ref-list">
+            {% for cu in casos %}<li><a href="{{ url_for('casos_uso.detalle', id=cu.id) }}"><b>{{ cu.identificador }}</b> {{ cu.nombre }}</a></li>{% endfor %}
         </ul>
         {% elif req.tipo == 'funcional' %}
-        <p style="color:#e65100"><i class="fas fa-triangle-exclamation"></i> Sin caso de uso (cobertura incompleta).</p>
-        {% else %}<p style="color:#999">No aplica para no funcionales.</p>{% endif %}
+        <div class="banner banner-warning" style="border-left-width:1px">
+            <div class="banner-icon"><i class="fas fa-triangle-exclamation"></i></div>
+            <div><strong>Sin caso de uso</strong><p>La cobertura de este requerimiento está incompleta.</p></div>
+        </div>
+        <a href="{{ url_for('casos_uso.nuevo', proyecto_id=req.proyecto_id) }}" class="btn btn-soft btn-sm" style="margin-top:.8rem"><i class="fas fa-plus"></i> Crear caso de uso</a>
+        {% else %}<p class="text-muted">No aplica para requerimientos no funcionales.</p>{% endif %}
     </div>
 </div>
 
-<div class="card">
-    <h2 style="margin-bottom:.75rem"><i class="fas fa-link"></i> Relaciones de Trazabilidad</h2>
+<div class="card card-flush">
+    <div class="card-header" style="padding:1.2rem 1.4rem 0"><h2><i class="fas fa-link"></i> Relaciones de Trazabilidad</h2></div>
     {% if relaciones_orig or relaciones_dest %}
+    <div class="table-wrap">
     <table>
         <thead><tr><th>Origen</th><th>Tipo</th><th>Destino</th><th>Descripción</th><th></th></tr></thead>
         <tbody>
         {% for rel in relaciones_orig %}
-        <tr {% if rel.tipo_relacion == 'contradice' %}style="background:#ffebee"{% endif %}>
-            <td><strong>{{ req.identificador }}</strong></td>
-            <td style="font-size:.8rem">{{ rel.tipo_relacion.replace('_',' ') }}</td>
-            <td><a href="{{ url_for('requerimientos.detalle', id=rel.requerimiento_destino_id) }}">{{ rel.destino.identificador }}</a></td>
-            <td style="color:#666;font-size:.875rem">{{ rel.descripcion or '-' }}</td>
-            <td>
-                <form method="post" action="{{ url_for('trazabilidad.eliminar', id=rel.id) }}" style="display:inline"
+        <tr {% if rel.tipo_relacion == 'contradice' %}class="row-danger"{% endif %}>
+            <td><b>{{ req.identificador }}</b></td>
+            <td>{{ badge_relacion(rel.tipo_relacion) }}</td>
+            <td><a class="id-link" href="{{ url_for('requerimientos.detalle', id=rel.requerimiento_destino_id) }}">{{ rel.destino.identificador }}</a></td>
+            <td class="cell-muted">{{ rel.descripcion or '—' }}</td>
+            <td style="text-align:right">
+                <form method="post" action="{{ url_for('trazabilidad.eliminar', id=rel.id) }}" class="inline-form"
                       onsubmit="return confirm('¿Eliminar relación?')">
-                    <button type="submit" class="btn btn-sm btn-danger">Eliminar</button>
+                    <button type="submit" class="icon-btn red" title="Eliminar"><i class="far fa-trash-can"></i></button>
                 </form>
             </td>
         </tr>
         {% endfor %}
         {% for rel in relaciones_dest %}
-        <tr {% if rel.tipo_relacion == 'contradice' %}style="background:#ffebee"{% endif %}>
-            <td><a href="{{ url_for('requerimientos.detalle', id=rel.requerimiento_origen_id) }}">{{ rel.origen.identificador }}</a></td>
-            <td style="font-size:.8rem">{{ rel.tipo_relacion.replace('_',' ') }}</td>
-            <td><strong>{{ req.identificador }}</strong></td>
-            <td style="color:#666;font-size:.875rem">{{ rel.descripcion or '-' }}</td>
+        <tr {% if rel.tipo_relacion == 'contradice' %}class="row-danger"{% endif %}>
+            <td><a class="id-link" href="{{ url_for('requerimientos.detalle', id=rel.requerimiento_origen_id) }}">{{ rel.origen.identificador }}</a></td>
+            <td>{{ badge_relacion(rel.tipo_relacion) }}</td>
+            <td><b>{{ req.identificador }}</b></td>
+            <td class="cell-muted">{{ rel.descripcion or '—' }}</td>
             <td></td>
         </tr>
         {% endfor %}
         </tbody>
     </table>
+    </div>
     {% else %}
-    <p style="color:#999">Sin relaciones. <a href="{{ url_for('trazabilidad.nueva', proyecto_id=req.proyecto_id) }}">Agregar</a></p>
+    <div class="empty-state" style="padding:2rem"><p>Sin relaciones.</p>
+        <a href="{{ url_for('trazabilidad.nueva', proyecto_id=req.proyecto_id) }}" class="btn btn-soft btn-sm"><i class="fas fa-plus"></i> Agregar relación</a></div>
     {% endif %}
 </div>
 
-<div class="card">
-    <h2 style="margin-bottom:.75rem"><i class="fas fa-clock-rotate-left"></i> Historial de Cambios</h2>
+<div class="card card-flush">
+    <div class="card-header" style="padding:1.2rem 1.4rem 0"><h2><i class="fas fa-clock-rotate-left"></i> Historial de Cambios</h2></div>
     {% if historial %}
+    <div class="table-wrap">
     <table>
         <thead><tr><th>Fecha</th><th>Campo</th><th>Anterior</th><th>Nuevo</th><th>Motivo</th></tr></thead>
         <tbody>
         {% for h in historial %}
         <tr>
-            <td style="color:#666;font-size:.8rem;white-space:nowrap">{{ h.fecha.strftime('%d/%m/%Y %H:%M') }}</td>
-            <td><code style="font-size:.8rem">{{ h.campo_modificado }}</code></td>
-            <td style="color:#666;font-size:.875rem">{{ h.valor_anterior or '-' }}</td>
-            <td style="font-size:.875rem">{{ h.valor_nuevo or '-' }}</td>
-            <td style="color:#666;font-size:.875rem">{{ h.descripcion or '-' }}</td>
+            <td class="cell-muted" style="white-space:nowrap">{{ h.fecha.strftime('%d/%m/%Y %H:%M') }}</td>
+            <td><code>{{ h.campo_modificado }}</code></td>
+            <td class="cell-muted">{{ h.valor_anterior or '—' }}</td>
+            <td>{{ h.valor_nuevo or '—' }}</td>
+            <td class="cell-muted">{{ h.descripcion or '—' }}</td>
         </tr>
         {% endfor %}
         </tbody>
     </table>
-    {% else %}<p style="color:#999">Sin historial.</p>{% endif %}
+    </div>
+    {% else %}<div class="empty-state" style="padding:2rem"><p>Sin historial.</p></div>{% endif %}
 </div>
 
 <div class="card">
-    <h2 style="margin-bottom:.75rem"><i class="fas fa-comments"></i> Comentarios</h2>
+    <div class="card-header"><h2><i class="far fa-comments"></i> Comentarios <span class="badge badge-neutral">{{ comentarios|length }}</span></h2></div>
     {% if comentarios %}
-    <div style="display:flex;flex-direction:column;gap:.75rem;margin-bottom:1rem">
+    <div style="display:flex;flex-direction:column;gap:.7rem;margin-bottom:1.2rem">
         {% for c in comentarios %}
-        <div style="background:#f5f5f5;border-radius:6px;padding:.75rem 1rem;border-left:3px solid #1a237e">
-            <div style="display:flex;gap:.75rem;font-size:.8rem;margin-bottom:.35rem">
+        <div class="comment">
+            <div class="comment-head">
+                <span class="avatar">{{ c.autor[:1] }}</span>
                 <strong>{{ c.autor }}</strong>
-                <span style="color:#999">{{ c.fecha_creacion.strftime('%d/%m/%Y %H:%M') }}</span>
+                <span class="text-muted">{{ c.fecha_creacion.strftime('%d/%m/%Y %H:%M') }}</span>
             </div>
-            <p style="font-size:.9rem;line-height:1.5">{{ c.texto }}</p>
+            <p style="font-size:.92rem;line-height:1.55">{{ c.texto }}</p>
         </div>
         {% endfor %}
     </div>
-    {% else %}<p style="color:#999;margin-bottom:1rem">Sin comentarios.</p>{% endif %}
-    <form method="post" action="{{ url_for('requerimientos.comentar', id=req.id) }}" style="border-top:1px solid #eee;padding-top:.75rem">
-        <div style="display:grid;grid-template-columns:160px 1fr;gap:.75rem">
-            <div class="form-group" style="margin-bottom:0">
-                <label style="font-size:.8rem">Tu nombre</label>
-                <input type="text" name="autor" class="form-control" placeholder="Anónimo" style="font-size:.875rem;padding:.35rem .55rem">
+    {% else %}<p class="text-muted" style="margin-bottom:1rem">Sin comentarios todavía.</p>{% endif %}
+    <form method="post" action="{{ url_for('requerimientos.comentar', id=req.id) }}" style="border-top:1px solid var(--border);padding-top:1rem">
+        <div class="form-grid comment-grid">
+            <div class="form-group">
+                <label>Tu nombre</label>
+                <input type="text" name="autor" class="form-control" placeholder="Anónimo">
             </div>
-            <div class="form-group" style="margin-bottom:0">
-                <label style="font-size:.8rem">Comentario *</label>
-                <textarea name="texto" class="form-control" rows="2" required style="font-size:.875rem;resize:vertical"></textarea>
+            <div class="form-group">
+                <label>Comentario *</label>
+                <textarea name="texto" class="form-control" rows="2" required style="resize:vertical"></textarea>
             </div>
         </div>
-        <button type="submit" class="btn btn-primary btn-sm" style="margin-top:.5rem"><i class="fas fa-paper-plane"></i> Comentar</button>
+        <button type="submit" class="btn btn-primary btn-sm"><i class="far fa-paper-plane"></i> Comentar</button>
     </form>
 </div>
 {% endblock %}

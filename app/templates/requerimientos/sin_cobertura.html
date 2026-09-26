@@ -1,47 +1,49 @@
 {% extends "base.html" %}
-{% from '_badges.html' import badge_prioridad %}
+{% from '_badges.html' import badge_prioridad, badge_estado %}
+{% from '_ui.html' import page_header %}
 {% block title %}Sin Cobertura{% endblock %}
 {% block content %}
-<div class="page-header">
-    <div>
-        <h1>Requerimientos sin Cobertura</h1>
-        <p style="color:#666;margin-top:.2rem">Requerimientos funcionales sin ningún caso de uso asociado.</p>
-    </div>
-</div>
-<div class="card" style="padding:.75rem 1rem;margin-bottom:1rem">
-    <form method="get" style="display:flex;gap:.75rem;align-items:flex-end">
-        <div>
-            <label style="display:block;font-size:.8rem;font-weight:600;margin-bottom:.2rem">Proyecto</label>
-            <select name="proyecto_id" class="form-control" style="width:auto">
-                <option value="">Todos</option>
-                {% for p in proyectos %}
-                <option value="{{ p.id }}" {% if proyecto_id == p.id %}selected{% endif %}>{{ p.nombre }}</option>
-                {% endfor %}
-            </select>
-        </div>
-        <button type="submit" class="btn btn-primary btn-sm">Filtrar</button>
-        <a href="{{ url_for('requerimientos.sin_cobertura') }}" class="btn btn-secondary btn-sm">Limpiar</a>
-    </form>
-</div>
+{% call page_header('fas fa-triangle-exclamation', 'Requerimientos sin cobertura', 'Requerimientos funcionales sin ningún caso de uso asociado.', 'Análisis', 'tile-orange') %}
+{% endcall %}
+
+<form method="get" class="card" style="display:flex;align-items:center;gap:1rem;max-width:520px">
+    <label class="filter-label" style="margin:0;white-space:nowrap"><i class="far fa-folder"></i> Proyecto</label>
+    <select name="proyecto_id" class="form-control" onchange="this.form.submit()">
+        <option value="">Todos</option>
+        {% for p in proyectos %}
+        <option value="{{ p.id }}" {% if proyecto_id == p.id %}selected{% endif %}>{{ p.nombre }}</option>
+        {% endfor %}
+    </select>
+</form>
+
 {% if reqs %}
-<div class="card">
-    <p style="color:#e65100;margin-bottom:.75rem">⚠ {{ reqs|length }} requerimiento(s) sin caso de uso.</p>
+<div class="banner banner-warning mb">
+    <div class="banner-icon"><i class="fas fa-triangle-exclamation"></i></div>
+    <div><strong>{{ reqs|length }} requerimiento(s) sin caso de uso</strong><p>Crea o edita un caso de uso para cubrirlos.</p></div>
+</div>
+<div class="card card-flush">
+    <div class="table-wrap">
     <table>
-        <thead><tr><th>ID</th><th>Proyecto</th><th>Descripción</th><th>Prioridad</th><th></th></tr></thead>
+        <thead><tr><th data-sort>ID</th><th data-sort>Proyecto</th><th>Descripción</th><th data-sort>Prioridad</th><th data-sort>Estado</th><th style="text-align:right">Acción</th></tr></thead>
         <tbody>
         {% for r in reqs %}
         <tr>
-            <td><a href="{{ url_for('requerimientos.detalle', id=r.id) }}"><strong>{{ r.identificador }}</strong></a></td>
-            <td>{{ r.proyecto.nombre }}</td>
-            <td>{{ r.descripcion[:70] }}{% if r.descripcion|length > 70 %}…{% endif %}</td>
+            <td><a class="id-link" href="{{ url_for('requerimientos.detalle', id=r.id) }}">{{ r.identificador }}</a></td>
+            <td class="cell-muted">{{ r.proyecto.nombre }}</td>
+            <td class="cell-desc">{{ r.descripcion[:90] }}{% if r.descripcion|length > 90 %}…{% endif %}</td>
             <td>{{ badge_prioridad(r.prioridad) }}</td>
-            <td><a href="{{ url_for('casos_uso.nuevo', proyecto_id=r.proyecto_id) }}" class="btn btn-sm btn-primary">Crear CU</a></td>
+            <td>{{ badge_estado(r.estado) }}</td>
+            <td style="text-align:right"><a href="{{ url_for('casos_uso.nuevo', proyecto_id=r.proyecto_id) }}" class="btn btn-sm btn-soft"><i class="fas fa-plus"></i> Crear CU</a></td>
         </tr>
         {% endfor %}
         </tbody>
     </table>
+    </div>
 </div>
 {% else %}
-<div class="empty-state"><p style="color:#2e7d32">✓ Todos los requerimientos funcionales tienen al menos un caso de uso.</p></div>
+<div class="banner banner-success">
+    <div class="banner-icon"><i class="fas fa-check"></i></div>
+    <div><strong>Cobertura completa</strong><p>Todos los requerimientos funcionales tienen al menos un caso de uso.</p></div>
+</div>
 {% endif %}
 {% endblock %}

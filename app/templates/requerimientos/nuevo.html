@@ -1,13 +1,13 @@
 {% extends "base.html" %}
+{% from '_ui.html' import page_header %}
 {% block title %}Nuevo Requerimiento{% endblock %}
 {% block content %}
-<div class="page-header">
-    <h1>Nuevo Requerimiento</h1>
-    <a href="{{ url_for('requerimientos.lista') }}" class="btn btn-secondary">Volver</a>
-</div>
-<div class="card" style="max-width:700px">
+{% call page_header('fas fa-list-ul', 'Nuevo Requerimiento', 'El identificador RF/RNF se asigna automáticamente.', 'Requerimientos', 'tile-green') %}
+    <a href="{{ url_for('requerimientos.lista') }}" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Volver</a>
+{% endcall %}
+<div class="card form-card">
     <form method="post">
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem">
+        <div class="form-grid">
             <div class="form-group">
                 <label>Proyecto *</label>
                 <select name="proyecto_id" id="sel_proyecto" class="form-control" required>
@@ -59,7 +59,7 @@
             <textarea name="descripcion" class="form-control" rows="4" required></textarea>
         </div>
         <div class="form-actions">
-            <button type="submit" class="btn btn-primary">Crear requerimiento</button>
+            <button type="submit" class="btn btn-primary"><i class="fas fa-check"></i> Crear requerimiento</button>
             <a href="{{ url_for('requerimientos.lista') }}" class="btn btn-secondary">Cancelar</a>
         </div>
     </form>

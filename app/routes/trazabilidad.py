@@ -60,8 +60,10 @@ def matriz():
         contradicciones = Trazabilidad.query.filter(Trazabilidad.tipo_relacion == 'contradice',
                                                      Trazabilidad.requerimiento_origen_id.in_(todos_ids)).all()
         relaciones_traz = Trazabilidad.query.filter(Trazabilidad.requerimiento_origen_id.in_(todos_ids)).all()
+    cubiertos = sum(1 for ids in matriz_data.values() if ids)
+    cobertura_pct = round(cubiertos / len(reqs) * 100, 1) if reqs else 0
     return render_template('trazabilidad/matriz.html', proyectos=proyectos, proyecto_id=proyecto_id,
-                           reqs=reqs, casos=casos, matriz_data=matriz_data,
+                           reqs=reqs, casos=casos, matriz_data=matriz_data, cobertura_pct=cobertura_pct,
                            contradicciones=contradicciones, relaciones_traz=relaciones_traz)
 
 @bp_traz.route('/grafo')
@@ -77,12 +79,12 @@ def grafo_datos():
     if proyecto_id:
         reqs = Requerimiento.query.filter_by(proyecto_id=proyecto_id).all()
         req_ids = [r.id for r in reqs]
-        color_tipo = {'funcional': '#1a237e', 'no_funcional': '#1b5e20'}
+        color_tipo = {'funcional': '#2451e6', 'no_funcional': '#7c3aed'}
         for r in reqs:
             nodes.append({'id': r.id, 'label': r.identificador, 'title': r.descripcion[:100],
                           'color': color_tipo.get(r.tipo, '#546e7a'), 'group': r.tipo})
         relaciones = Trazabilidad.query.filter(Trazabilidad.requerimiento_origen_id.in_(req_ids)).all()
-        color_rel = {'depende_de': '#1565c0', 'refina': '#1b5e20', 'contradice': '#b71c1c'}
+        color_rel = {'depende_de': '#2563eb', 'refina': '#16a34a', 'contradice': '#dc2626'}
         for rel in relaciones:
             edges.append({'from': rel.requerimiento_origen_id, 'to': rel.requerimiento_destino_id,
                           'label': rel.tipo_relacion.replace('_', ' '),

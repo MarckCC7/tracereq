@@ -1,125 +1,133 @@
 {% extends "base.html" %}
-{% from '_export_menu.html' import export_menu %}
-{% block title %}Dashboard - TraceReq{% endblock %}
+{% from '_ui.html' import page_header, stat %}
+{% block title %}Inicio{% endblock %}
 {% block content %}
-<div class="page-header">
-    <div><h1>Dashboard</h1><p style="color:#666;margin-top:.25rem">Resumen general del sistema</p></div>
-    <a href="{{ url_for('proyectos.nuevo') }}" class="btn btn-primary">+ Nuevo proyecto</a>
+{% call page_header('fas fa-chart-simple', 'Panel de Control', 'Un vistazo rápido al estado de tus proyectos. El detalle completo vive en cada pestaña.', 'Bienvenido a TraceReq') %}
+    <a href="{{ url_for('proyectos.nuevo') }}" class="btn btn-dark"><i class="fas fa-plus"></i> Nuevo proyecto</a>
+    <a href="{{ url_for('requerimientos.nuevo') }}" class="btn btn-secondary"><i class="fas fa-plus"></i> Nuevo requerimiento</a>
+{% endcall %}
+
+<div class="grid grid-4 mb">
+    {{ stat('far fa-folder', total_proyectos, 'Proyectos',
+            ('Último: ' ~ ultimo_proyecto.nombre) if ultimo_proyecto else 'Aún no hay proyectos', 'blue', url_for('proyectos.lista')) }}
+    {{ stat('far fa-file-lines', total_reqs, 'Requerimientos',
+            reqs_funcionales ~ ' funcionales · ' ~ (total_reqs - reqs_funcionales) ~ ' no funcionales', 'green', url_for('requerimientos.lista')) }}
+    {{ stat('fas fa-users', total_cu, 'Casos de Uso', cu_con_reqs ~ ' asociados a requerimientos', 'purple', url_for('casos_uso.lista')) }}
+    {{ stat('fas fa-link', total_relaciones, 'Relaciones', 'Entre requerimientos', 'orange', url_for('trazabilidad.matriz')) }}
 </div>
 
-<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:1rem;margin-bottom:1.25rem">
-    <div class="metric-card" style="background:linear-gradient(135deg,#1a237e,#283593)">
-        <div style="font-size:1.9rem;font-weight:700;color:#fff">{{ total_proyectos }}</div>
-        <div style="color:rgba(255,255,255,.8);font-size:.85rem">Proyectos</div>
+{% if reqs_sin_cu or contradicciones %}
+<div class="grid grid-2 mb">
+    {% if reqs_sin_cu %}
+    <div class="banner banner-warning">
+        <div class="banner-icon"><i class="fas fa-triangle-exclamation"></i></div>
+        <div>
+            <strong>{{ reqs_sin_cu }} requerimiento(s) funcional(es) sin caso de uso</strong>
+            <p>No están asociados a ningún caso de uso.</p>
+        </div>
+        <a href="{{ url_for('requerimientos.sin_cobertura') }}" class="btn btn-sm">Ver detalle <i class="fas fa-arrow-right"></i></a>
     </div>
-    <div class="metric-card" style="background:linear-gradient(135deg,#1b5e20,#2e7d32)">
-        <div style="font-size:1.9rem;font-weight:700;color:#fff">{{ total_reqs }}</div>
-        <div style="color:rgba(255,255,255,.8);font-size:.85rem">Requerimientos</div>
+    {% endif %}
+    {% if contradicciones %}
+    <div class="banner banner-danger">
+        <div class="banner-icon"><i class="fas fa-exclamation"></i></div>
+        <div>
+            <strong>{{ contradicciones }} relación(es) de contradicción</strong>
+            <p>Hay requerimientos que se contradicen entre sí.</p>
+        </div>
+        <a href="{{ url_for('trazabilidad.matriz') }}" class="btn btn-sm">Ver matriz <i class="fas fa-arrow-right"></i></a>
     </div>
-    <div class="metric-card" style="background:linear-gradient(135deg,#4a148c,#6a1b9a)">
-        <div style="font-size:1.9rem;font-weight:700;color:#fff">{{ total_cu }}</div>
-        <div style="color:rgba(255,255,255,.8);font-size:.85rem">Casos de Uso</div>
+    {% endif %}
+</div>
+{% elif total_reqs %}
+<div class="banner banner-success mb">
+    <div class="banner-icon"><i class="fas fa-check"></i></div>
+    <div><strong>Todo en orden</strong><p>Sin requerimientos descubiertos ni contradicciones.</p></div>
+</div>
+{% endif %}
+
+{% if total_reqs %}
+{% set estado_orden = ['pendiente', 'activo', 'completado', 'cancelado'] %}
+{% set prioridad_orden = ['alta', 'media', 'baja'] %}
+{% set max_prio = (prioridades.values() | max) if prioridades else 1 %}
+<div class="grid grid-4 mb" style="grid-template-columns:repeat(auto-fit,minmax(280px,1fr))">
+    <div class="card">
+        <div class="card-header"><h2><i class="fas fa-bullseye"></i> Cobertura</h2>
+            <span class="badge badge-neutral">{{ reqs_funcionales - reqs_sin_cu }} de {{ reqs_funcionales }}</span></div>
+        <div class="big-number">{{ cobertura_pct }}%</div>
+        <p class="text-muted" style="margin:.35rem 0 1rem;font-size:.87rem">de requerimientos funcionales con caso de uso</p>
+        <div class="progress"><span style="width:{{ cobertura_pct }}%"></span></div>
     </div>
-    <div class="metric-card" style="background:linear-gradient(135deg,#e65100,#ef6c00)">
-        <div style="font-size:1.9rem;font-weight:700;color:#fff">{{ total_relaciones }}</div>
-        <div style="color:rgba(255,255,255,.8);font-size:.85rem">Relaciones</div>
+
+    <div class="card">
+        <div class="card-header"><h2><i class="fas fa-list-check"></i> Por estado</h2>
+            <a class="link-arrow" href="{{ url_for('requerimientos.lista') }}">Ver <i class="fas fa-arrow-right"></i></a></div>
+        <div class="stack">
+            {% for e in estado_orden if estados.get(e) %}
+            <span class="c-{{ e }}" style="width:{{ estados[e] / total_reqs * 100 }}%" title="{{ e }}: {{ estados[e] }}"></span>
+            {% endfor %}
+        </div>
+        <ul class="legend">
+            {% for e in estado_orden if estados.get(e) %}
+            <li><span class="sw c-{{ e }}"></span> <a href="{{ url_for('requerimientos.lista', estado=e) }}" style="color:inherit;text-transform:capitalize">{{ e }}</a>
+                <span class="val">{{ estados[e] }}</span><span class="pct">{{ (estados[e] / total_reqs * 100) | round(1) }}%</span></li>
+            {% endfor %}
+        </ul>
+    </div>
+
+    <div class="card">
+        <div class="card-header"><h2><i class="fas fa-flag"></i> Por prioridad</h2></div>
+        {% for p in prioridad_orden %}
+        {% set n = prioridades.get(p, 0) %}
+        <div class="bar-row">
+            <a href="{{ url_for('requerimientos.lista', prioridad=p) }}" style="color:inherit;text-transform:capitalize">{{ p }}</a>
+            <div class="track"><div class="fill c-{{ p }}" style="width:{{ n / max_prio * 100 }}%"></div></div>
+            <b>{{ n }}</b>
+        </div>
+        {% endfor %}
+        <p class="text-muted" style="font-size:.8rem;margin-top:.9rem">
+            <span class="badge badge-funcional">{{ reqs_funcionales }} funcionales</span>
+            <span class="badge badge-no_funcional">{{ total_reqs - reqs_funcionales }} no funcionales</span>
+        </p>
     </div>
 </div>
-
-{% if reqs_sin_cu > 0 %}
-<div class="alert alert-warning">⚠ <strong>{{ reqs_sin_cu }}</strong> requerimiento(s) funcional(es) sin caso de uso.
-    <a href="{{ url_for('requerimientos.sin_cobertura') }}" style="margin-left:.5rem">Ver</a></div>
-{% endif %}
-{% if contradicciones > 0 %}
-<div class="alert alert-danger">⚠ <strong>{{ contradicciones }}</strong> relación(es) de contradicción detectada(s).
-    <a href="{{ url_for('trazabilidad.matriz') }}" style="margin-left:.5rem">Ver matriz</a></div>
 {% endif %}
 
-{% if reqs_funcionales > 0 %}
-<div class="card">
-    <h2 style="margin-bottom:.75rem">Cobertura de especificación</h2>
-    <div style="height:22px;background:#eee;border-radius:11px;overflow:hidden;margin-bottom:.4rem">
-        <div style="height:100%;width:{{ cobertura_pct }}%;background:linear-gradient(90deg,#2e7d32,#43a047);border-radius:11px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:.8rem;font-weight:700;min-width:40px">
-            {{ cobertura_pct }}%
+<div class="grid grid-main-side">
+    <div class="card">
+        <div class="card-header"><h2><i class="fas fa-clock-rotate-left"></i> Actividad reciente</h2></div>
+        {% if actividad %}
+        <ul class="activity">
+            {% for h in actividad %}
+            {% set r = h.requerimiento %}
+            <li>
+                <div class="dot {% if h.campo_modificado == 'creacion' %}create{% endif %}">
+                    <i class="fas {{ 'fa-plus' if h.campo_modificado == 'creacion' else 'fa-pen' }}"></i>
+                </div>
+                <div style="min-width:0">
+                    <div class="what">
+                        <a class="id-link" href="{{ url_for('requerimientos.detalle', id=r.id) }}">{{ r.identificador }}</a>
+                        {% if h.campo_modificado == 'creacion' %}fue creado
+                        {% else %}· cambió <code>{{ h.campo_modificado }}</code>{% if h.valor_nuevo and h.valor_nuevo|length < 30 %} a <strong>{{ h.valor_nuevo }}</strong>{% endif %}{% endif %}
+                    </div>
+                    <div class="meta">{{ r.proyecto.nombre }} · {{ h.fecha.strftime('%d/%m/%Y %H:%M') }}</div>
+                </div>
+            </li>
+            {% endfor %}
+        </ul>
+        {% else %}
+        <div class="empty-state" style="padding:1.5rem"><i class="far fa-clock"></i><p>Aún no hay actividad registrada.</p></div>
+        {% endif %}
+    </div>
+
+    <div class="card">
+        <div class="card-header"><h2><i class="fas fa-bolt"></i> Accesos rápidos</h2></div>
+        <div class="quick">
+            <a href="{{ url_for('trazabilidad.matriz') }}"><span class="icon-tile sm tile-soft-purple"><i class="fas fa-table-cells-large"></i></span> Matriz</a>
+            <a href="{{ url_for('trazabilidad.grafo') }}"><span class="icon-tile sm tile-soft-blue"><i class="fas fa-circle-nodes"></i></span> Grafo</a>
+            <a href="{{ url_for('requerimientos.sin_cobertura') }}"><span class="icon-tile sm tile-soft-orange"><i class="fas fa-triangle-exclamation"></i></span> Sin cobertura</a>
+            <a href="{{ url_for('casos_uso.nuevo') }}"><span class="icon-tile sm tile-soft-green"><i class="fas fa-user-plus"></i></span> Nuevo CU</a>
         </div>
     </div>
-    <p style="color:#666;font-size:.85rem">{{ reqs_funcionales - reqs_sin_cu }} de {{ reqs_funcionales }} requerimientos funcionales cubiertos.</p>
 </div>
-{% endif %}
-
-<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:1rem;margin-bottom:1.25rem">
-    {% if estados %}
-    <div class="card">
-        <h2 style="margin-bottom:.75rem">Por Estado</h2>
-        <canvas id="chartEstados" height="180"></canvas>
-    </div>
-    {% endif %}
-    {% if prioridades %}
-    <div class="card">
-        <h2 style="margin-bottom:.75rem">Por Prioridad</h2>
-        <canvas id="chartPrioridades" height="180"></canvas>
-    </div>
-    {% endif %}
-    {% if tipos %}
-    <div class="card">
-        <h2 style="margin-bottom:.75rem">Por Tipo</h2>
-        <canvas id="chartTipos" height="180"></canvas>
-    </div>
-    {% endif %}
-</div>
-
-<div class="card">
-    <div class="page-header" style="margin-bottom:.75rem">
-        <h2>Proyectos</h2>
-    </div>
-    {% if proyectos %}
-    <table>
-        <thead><tr><th>Nombre</th><th>Descripción</th><th>Creado</th><th>Acciones</th></tr></thead>
-        <tbody>
-        {% for p in proyectos %}
-        <tr>
-            <td><a href="{{ url_for('proyectos.detalle', id=p.id) }}"><strong>{{ p.nombre }}</strong></a></td>
-            <td style="color:#666">{{ (p.descripcion or '')[:60] }}</td>
-            <td>{{ p.fecha_creacion.strftime('%d/%m/%Y') }}</td>
-            <td style="display:flex;gap:.4rem;flex-wrap:wrap">
-                <a href="{{ url_for('trazabilidad.matriz', proyecto_id=p.id) }}" class="btn btn-sm btn-secondary"><i class="fas fa-table"></i> Matriz</a>
-                {{ export_menu(p.id, size='btn-sm') }}
-            </td>
-        </tr>
-        {% endfor %}
-        </tbody>
-    </table>
-    {% else %}
-    <div class="empty-state"><p>No hay proyectos. <a href="{{ url_for('proyectos.nuevo') }}">Crear uno</a>.</p></div>
-    {% endif %}
-</div>
-{% endblock %}
-{% block scripts %}
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-<script>
-{% set cE = {'pendiente':'#f6c23e','activo':'#4e73df','completado':'#1cc88a','cancelado':'#858796'} %}
-{% set cP = {'alta':'#e74a3b','media':'#f6c23e','baja':'#1cc88a'} %}
-{% set cT = {'funcional':'#4e73df','no_funcional':'#1cc88a'} %}
-{% if estados %}
-new Chart(document.getElementById('chartEstados'),{type:'doughnut',data:{
-    labels:[{% for e,c in estados %}'{{e}}'{% if not loop.last %},{% endif %}{% endfor %}],
-    datasets:[{data:[{% for e,c in estados %}{{c}}{% if not loop.last %},{% endif %}{% endfor %}],
-               backgroundColor:[{% for e,c in estados %}'{{cE.get(e,"#999")}}'{% if not loop.last %},{% endif %}{% endfor %}]}]
-},options:{responsive:true,plugins:{legend:{position:'bottom'}}}});
-{% endif %}
-{% if prioridades %}
-new Chart(document.getElementById('chartPrioridades'),{type:'bar',data:{
-    labels:[{% for p,c in prioridades %}'{{p}}'{% if not loop.last %},{% endif %}{% endfor %}],
-    datasets:[{data:[{% for p,c in prioridades %}{{c}}{% if not loop.last %},{% endif %}{% endfor %}],
-               backgroundColor:[{% for p,c in prioridades %}'{{cP.get(p,"#999")}}'{% if not loop.last %},{% endif %}{% endfor %}]}]
-},options:{responsive:true,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{stepSize:1}}}}});
-{% endif %}
-{% if tipos %}
-new Chart(document.getElementById('chartTipos'),{type:'pie',data:{
-    labels:[{% for t,c in tipos %}'{{t.replace("_"," ")}}'{% if not loop.last %},{% endif %}{% endfor %}],
-    datasets:[{data:[{% for t,c in tipos %}{{c}}{% if not loop.last %},{% endif %}{% endfor %}],
-               backgroundColor:[{% for t,c in tipos %}'{{cT.get(t,"#999")}}'{% if not loop.last %},{% endif %}{% endfor %}]}]
-},options:{responsive:true,plugins:{legend:{position:'bottom'}}}});
-{% endif %}
-</script>
 {% endblock %}

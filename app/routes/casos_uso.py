@@ -33,7 +33,11 @@ def lista():
     if proyecto_id:
         query = query.filter_by(proyecto_id=proyecto_id)
     casos = query.order_by(CasoUso.identificador).all()
-    return render_template('casos_uso/lista.html', casos=casos, proyectos=proyectos, proyecto_id=proyecto_id)
+    resumen = {'con_reqs': sum(1 for c in casos if c.requerimientos.count()),
+               'actores': len({c.actor.strip().lower() for c in casos if c.actor and c.actor.strip()}),
+               'proyectos': len({c.proyecto_id for c in casos})}
+    return render_template('casos_uso/lista.html', casos=casos, proyectos=proyectos, proyecto_id=proyecto_id,
+                           resumen=resumen)
 
 @bp_cu.route('/nuevo', methods=['GET', 'POST'])
 def nuevo():

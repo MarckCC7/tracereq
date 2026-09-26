@@ -1,49 +1,68 @@
 {% extends "base.html" %}
+{% from '_ui.html' import page_header, stat %}
 {% block title %}Casos de Uso{% endblock %}
 {% block content %}
-<div class="page-header">
-    <h1>Casos de Uso</h1>
-    <a href="{{ url_for('casos_uso.nuevo', proyecto_id=proyecto_id) }}" class="btn btn-primary">+ Nuevo</a>
+{% call page_header('fas fa-users', 'Casos de Uso', 'Define actores, relaciona casos de uso con requerimientos y mantén la trazabilidad.', 'Casos de uso', 'tile-purple') %}
+    <a href="{{ url_for('casos_uso.nuevo', proyecto_id=proyecto_id) }}" class="btn btn-dark btn-lg"><i class="fas fa-plus"></i> Nuevo</a>
+{% endcall %}
+
+<div class="grid grid-4 mb">
+    {{ stat('fas fa-users', casos|length, 'Casos de uso', 'Total registrados', 'blue') }}
+    {{ stat('far fa-file-lines', resumen.con_reqs, 'Con requerimientos', (casos|length - resumen.con_reqs) ~ ' sin requerimientos', 'green') }}
+    {{ stat('far fa-user', resumen.actores, 'Actor único' if resumen.actores == 1 else 'Actores únicos', 'Involucrados', 'orange') }}
+    {{ stat('fas fa-diagram-project', resumen.proyectos, 'Proyecto' if resumen.proyectos == 1 else 'Proyectos', 'En este listado', 'purple') }}
 </div>
-<div class="card" style="padding:.75rem 1rem;margin-bottom:1rem">
-    <form method="get" style="display:flex;gap:.75rem;align-items:flex-end">
-        <div>
-            <label style="display:block;font-size:.8rem;font-weight:600;margin-bottom:.2rem">Proyecto</label>
-            <select name="proyecto_id" class="form-control" style="width:auto">
-                <option value="">Todos</option>
-                {% for p in proyectos %}
-                <option value="{{ p.id }}" {% if proyecto_id == p.id %}selected{% endif %}>{{ p.nombre }}</option>
-                {% endfor %}
-            </select>
-        </div>
-        <button type="submit" class="btn btn-primary btn-sm">Filtrar</button>
-    </form>
-</div>
-{% if casos %}
-<div class="card">
-    <table>
-        <thead><tr><th>ID</th><th>Nombre</th><th>Proyecto</th><th>Actor</th><th>Requerimientos</th><th></th></tr></thead>
+
+<form method="get" class="card filters" style="display:flex;flex-wrap:wrap;align-items:flex-end">
+    <div style="min-width:240px">
+        <label class="filter-label"><i class="far fa-folder"></i> Proyecto</label>
+        <select name="proyecto_id" class="form-control" onchange="this.form.submit()">
+            <option value="">Todos</option>
+            {% for p in proyectos %}
+            <option value="{{ p.id }}" {% if proyecto_id == p.id %}selected{% endif %}>{{ p.nombre }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="input-icon" style="min-width:220px">
+        <i class="fas fa-magnifying-glass"></i>
+        <input type="search" class="form-control" placeholder="Buscar en la tabla..." data-table-filter="#tabla-cu">
+    </div>
+</form>
+
+<div class="card card-flush">
+    {% if casos %}
+    <div class="table-wrap">
+    <table id="tabla-cu">
+        <thead><tr><th data-sort>ID</th><th data-sort>Nombre</th><th data-sort>Proyecto</th><th data-sort>Actor</th><th data-sort style="text-align:center">Requerimientos</th><th style="text-align:right">Acciones</th></tr></thead>
         <tbody>
         {% for cu in casos %}
+        {% set n = cu.requerimientos.count() %}
         <tr>
-            <td><strong>{{ cu.identificador }}</strong></td>
+            <td><a class="id-link" href="{{ url_for('casos_uso.detalle', id=cu.id) }}">{{ cu.identificador }}</a></td>
             <td><a href="{{ url_for('casos_uso.detalle', id=cu.id) }}">{{ cu.nombre }}</a></td>
-            <td>{{ cu.proyecto.nombre }}</td>
-            <td>{{ cu.actor or '-' }}</td>
-            <td>{{ cu.requerimientos.count() }}</td>
+            <td class="cell-muted">{{ cu.proyecto.nombre }}</td>
+            <td>{% if cu.actor %}<span class="badge badge-neutral"><i class="far fa-user"></i> {{ cu.actor }}</span>{% else %}<span class="cell-muted">—</span>{% endif %}</td>
+            <td style="text-align:center" data-value="{{ n }}"><span class="count-pill {% if not n %}zero{% endif %}">{{ n }}</span></td>
             <td>
-                <a href="{{ url_for('casos_uso.editar', id=cu.id) }}" class="btn btn-sm btn-secondary">Editar</a>
-                <form method="post" action="{{ url_for('casos_uso.eliminar', id=cu.id) }}" style="display:inline"
-                      onsubmit="return confirm('¿Eliminar?')">
-                    <button type="submit" class="btn btn-sm btn-danger">Eliminar</button>
-                </form>
+                <div class="icon-actions" style="justify-content:flex-end">
+                    <a href="{{ url_for('casos_uso.editar', id=cu.id) }}" class="btn btn-sm btn-secondary"><i class="fas fa-pen"></i> Editar</a>
+                    <form method="post" action="{{ url_for('casos_uso.eliminar', id=cu.id) }}" class="inline-form"
+                          onsubmit="return confirm('¿Eliminar {{ cu.identificador }}?')">
+                        <button type="submit" class="btn btn-sm btn-danger-soft"><i class="far fa-trash-can"></i> Eliminar</button>
+                    </form>
+                </div>
             </td>
         </tr>
         {% endfor %}
         </tbody>
     </table>
+    </div>
+    <div class="table-footer">
+        <span>Mostrando <b data-filter-count="#tabla-cu">{{ casos|length }}</b> de {{ casos|length }} casos de uso</span>
+    </div>
+    {% else %}
+    <div class="empty-state"><i class="fas fa-users"></i><p>No hay casos de uso registrados.</p>
+        <a href="{{ url_for('casos_uso.nuevo', proyecto_id=proyecto_id) }}" class="btn btn-primary"><i class="fas fa-plus"></i> Crear caso de uso</a></div>
+    {% endif %}
 </div>
-{% else %}
-<div class="empty-state"><p>No hay casos de uso registrados.</p></div>
-{% endif %}
 {% endblock %}

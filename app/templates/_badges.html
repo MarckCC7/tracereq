@@ -1,3 +1,4 @@
-{% macro badge_estado(estado) %}<span class="badge badge-{{ estado }}">{{ estado }}</span>{% endmacro %}
+{% macro badge_estado(estado) %}<span class="badge badge-dot badge-{{ estado }}">{{ estado }}</span>{% endmacro %}
 {% macro badge_prioridad(prioridad) %}<span class="badge badge-{{ prioridad }}">{{ prioridad }}</span>{% endmacro %}
 {% macro badge_tipo(tipo) %}<span class="badge badge-{{ tipo }}">{{ 'Funcional' if tipo == 'funcional' else 'No funcional' }}</span>{% endmacro %}
+{% macro badge_relacion(tipo) %}<span class="badge badge-{{ tipo }}">{{ tipo.replace('_', ' ') }}</span>{% endmacro %}

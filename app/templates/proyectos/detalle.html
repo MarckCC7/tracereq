@@ -1,62 +1,72 @@
 {% extends "base.html" %}
 {% from '_badges.html' import badge_estado, badge_prioridad, badge_tipo %}
 {% from '_export_menu.html' import export_menu %}
+{% from '_ui.html' import page_header, stat %}
 {% block title %}{{ proyecto.nombre }}{% endblock %}
 {% block content %}
-<div class="page-header">
-    <div>
-        <h1>{{ proyecto.nombre }}</h1>
-        {% if proyecto.descripcion %}<p style="color:#666;margin-top:.25rem">{{ proyecto.descripcion }}</p>{% endif %}
-    </div>
-    <div style="display:flex;gap:.5rem;flex-wrap:wrap">
-        {{ export_menu(proyecto.id) }}
-        <a href="{{ url_for('proyectos.editar', id=proyecto.id) }}" class="btn btn-secondary"><i class="fas fa-pen"></i> Editar</a>
-        <form method="post" action="{{ url_for('proyectos.eliminar', id=proyecto.id) }}" style="display:inline"
-              onsubmit="return confirm('¿Eliminar el proyecto y TODOS sus datos?')">
-            <button type="submit" class="btn btn-danger"><i class="fas fa-trash"></i> Eliminar</button>
-        </form>
-    </div>
+{% call page_header('far fa-folder-open', proyecto.nombre, proyecto.descripcion or '', 'Proyecto · creado el ' ~ proyecto.fecha_creacion.strftime('%d/%m/%Y')) %}
+    {{ export_menu(proyecto.id) }}
+    <a href="{{ url_for('proyectos.editar', id=proyecto.id) }}" class="btn btn-secondary"><i class="fas fa-pen"></i> Editar</a>
+    <form method="post" action="{{ url_for('proyectos.eliminar', id=proyecto.id) }}" class="inline-form"
+          onsubmit="return confirm('¿Eliminar el proyecto y TODOS sus datos?')">
+        <button type="submit" class="btn btn-danger-soft"><i class="far fa-trash-can"></i> Eliminar</button>
+    </form>
+{% endcall %}
+
+<div class="grid grid-4 mb">
+    {{ stat('far fa-file-lines', reqs|length, 'Requerimientos', resumen.funcionales ~ ' funcionales · ' ~ (reqs|length - resumen.funcionales) ~ ' no funcionales', 'green', url_for('requerimientos.lista', proyecto_id=proyecto.id), compact=True) }}
+    {{ stat('fas fa-users', casos|length, 'Casos de uso', '', 'purple', url_for('casos_uso.lista', proyecto_id=proyecto.id), compact=True) }}
+    {{ stat('fas fa-bullseye', resumen.cobertura ~ '%', 'Cobertura', resumen.cubiertos ~ ' de ' ~ resumen.funcionales ~ ' funcionales', 'blue', url_for('requerimientos.sin_cobertura', proyecto_id=proyecto.id), compact=True) }}
+    {{ stat('fas fa-link', resumen.relaciones, 'Relaciones', '', 'orange', url_for('trazabilidad.matriz', proyecto_id=proyecto.id), compact=True) }}
 </div>
-<div class="card">
-    <div class="page-header" style="margin-bottom:.75rem">
-        <h2>Requerimientos ({{ reqs|length }})</h2>
-        <a href="{{ url_for('requerimientos.nuevo', proyecto_id=proyecto.id) }}" class="btn btn-sm btn-primary">+ Nuevo</a>
+
+<div class="card card-flush">
+    <div class="card-header" style="padding:1.2rem 1.4rem 0">
+        <h2><i class="far fa-file-lines"></i> Requerimientos <span class="badge badge-neutral">{{ reqs|length }}</span></h2>
+        <a href="{{ url_for('requerimientos.nuevo', proyecto_id=proyecto.id) }}" class="btn btn-sm btn-primary"><i class="fas fa-plus"></i> Nuevo</a>
     </div>
     {% if reqs %}
+    <div class="table-wrap">
     <table>
-        <thead><tr><th>ID</th><th>Tipo</th><th>Descripción</th><th>Prioridad</th><th>Estado</th></tr></thead>
+        <thead><tr><th data-sort>ID</th><th data-sort>Tipo</th><th>Descripción</th><th data-sort>Prioridad</th><th data-sort>Estado</th></tr></thead>
         <tbody>
         {% for r in reqs %}
         <tr>
-            <td><a href="{{ url_for('requerimientos.detalle', id=r.id) }}"><strong>{{ r.identificador }}</strong></a></td>
+            <td><a class="id-link" href="{{ url_for('requerimientos.detalle', id=r.id) }}">{{ r.identificador }}</a></td>
             <td>{{ badge_tipo(r.tipo) }}</td>
-            <td>{{ r.descripcion[:60] }}{% if r.descripcion|length > 60 %}…{% endif %}</td>
+            <td class="cell-desc">{{ r.descripcion[:90] }}{% if r.descripcion|length > 90 %}…{% endif %}</td>
             <td>{{ badge_prioridad(r.prioridad) }}</td>
             <td>{{ badge_estado(r.estado) }}</td>
         </tr>
         {% endfor %}
         </tbody>
     </table>
-    {% else %}<p style="color:#999">Sin requerimientos.</p>{% endif %}
+    </div>
+    {% else %}<div class="empty-state"><i class="far fa-file-lines"></i><p>Sin requerimientos.</p></div>{% endif %}
 </div>
-<div class="card">
-    <div class="page-header" style="margin-bottom:.75rem">
-        <h2>Casos de Uso ({{ casos|length }})</h2>
-        <a href="{{ url_for('casos_uso.nuevo', proyecto_id=proyecto.id) }}" class="btn btn-sm btn-primary">+ Nuevo</a>
+
+<div class="card card-flush">
+    <div class="card-header" style="padding:1.2rem 1.4rem 0">
+        <h2><i class="fas fa-users"></i> Casos de Uso <span class="badge badge-neutral">{{ casos|length }}</span></h2>
+        <a href="{{ url_for('casos_uso.nuevo', proyecto_id=proyecto.id) }}" class="btn btn-sm btn-primary"><i class="fas fa-plus"></i> Nuevo</a>
     </div>
     {% if casos %}
+    <div class="table-wrap">
     <table>
-        <thead><tr><th>ID</th><th>Nombre</th><th>Actor</th></tr></thead>
+        <thead><tr><th data-sort>ID</th><th data-sort>Nombre</th><th data-sort>Actor</th><th data-sort style="text-align:center">Req.</th></tr></thead>
         <tbody>
         {% for cu in casos %}
+        {% set n = cu.requerimientos.count() %}
         <tr>
-            <td><strong>{{ cu.identificador }}</strong></td>
+            <td><a class="id-link" href="{{ url_for('casos_uso.detalle', id=cu.id) }}">{{ cu.identificador }}</a></td>
             <td><a href="{{ url_for('casos_uso.detalle', id=cu.id) }}">{{ cu.nombre }}</a></td>
-            <td>{{ cu.actor or '-' }}</td>
+            <td class="cell-muted">{{ cu.actor or '—' }}</td>
+            <td style="text-align:center"><span class="count-pill {% if not n %}zero{% endif %}">{{ n }}</span></td>
         </tr>
         {% endfor %}
         </tbody>
     </table>
-    {% else %}<p style="color:#999">Sin casos de uso.</p>{% endif %}
+    </div>
+    {% else %}<div class="empty-state"><i class="fas fa-users"></i><p>Sin casos de uso.</p></div>{% endif %}
 </div>
 {% endblock %}
