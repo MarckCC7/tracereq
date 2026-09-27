@@ -1,6 +1,17 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
 from app import db
 from app.models import Trazabilidad, Requerimiento, Proyecto, CasoUso
+from app.historial import registrar_req
+
+
+def _anotar_relacion(origen, destino, tipo, creada):
+    """Anota la relacion en el historial de los DOS requerimientos."""
+    accion = 'creada' if creada else 'eliminada'
+    saliente, entrante = f'{tipo} {destino.identificador}', f'{origen.identificador} {tipo} (entrante)'
+    registrar_req(origen.id, 'relación', '' if creada else saliente, saliente if creada else '',
+                  f'Relación de trazabilidad {accion}', forzar=True)
+    registrar_req(destino.id, 'relación', '' if creada else entrante, entrante if creada else '',
+                  f'Relación de trazabilidad {accion}', forzar=True)
 
 bp_traz = Blueprint('trazabilidad', __name__)
 TIPOS = ['depende_de', 'refina', 'contradice']
@@ -27,6 +38,9 @@ def nueva():
         else:
             db.session.add(Trazabilidad(requerimiento_origen_id=origen_id, requerimiento_destino_id=destino_id,
                                         tipo_relacion=tipo, descripcion=descripcion))
+            origen, destino = db.session.get(Requerimiento, origen_id), db.session.get(Requerimiento, destino_id)
+            if origen and destino:
+                _anotar_relacion(origen, destino, tipo, creada=True)
             db.session.commit()
             flash('Relación creada.', 'success')
             return redirect(url_for('trazabilidad.matriz', proyecto_id=proyecto_id))
@@ -38,6 +52,7 @@ def nueva():
 def eliminar(id):
     rel = Trazabilidad.query.get_or_404(id)
     proyecto_id = rel.origen.proyecto_id
+    _anotar_relacion(rel.origen, rel.destino, rel.tipo_relacion, creada=False)
     db.session.delete(rel)
     db.session.commit()
     flash('Relación eliminada.', 'info')

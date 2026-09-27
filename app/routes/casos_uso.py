@@ -2,6 +2,7 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash,
 from app import db
 from app.models import CasoUso, Proyecto, Requerimiento, HistorialCasoUso
 from app.utils import generar_identificador
+from app.historial import registrar_cu, registrar_req
 
 bp_cu = Blueprint('casos_uso', __name__)
 
@@ -11,12 +12,17 @@ def _generar_identificador(proyecto_id):
     existentes = [c.identificador for c in CasoUso.query.filter_by(proyecto_id=proyecto_id).all()]
     return generar_identificador(existentes, PREFIJO_CU)
 
-def _registrar_cambio(cu_id, campo, anterior, nuevo, desc=None):
-    if str(anterior or '') != str(nuevo or ''):
-        db.session.add(HistorialCasoUso(
-            caso_uso_id=cu_id, campo_modificado=campo,
-            valor_anterior=str(anterior or ''), valor_nuevo=str(nuevo or ''),
-            descripcion=desc or f'Campo {campo} modificado'))
+_registrar_cambio = registrar_cu
+
+
+def _anotar_asociacion(cu, reqs, asociado, motivo=None):
+    """Deja en el historial de cada requerimiento que se (des)asocio al caso de uso."""
+    for r in reqs:
+        registrar_req(r.id, 'caso de uso', '' if asociado else cu.identificador,
+                      cu.identificador if asociado else '',
+                      motivo or (f'Asociado al caso de uso {cu.identificador}' if asociado
+                                 else f'Desasociado del caso de uso {cu.identificador}'),
+                      forzar=True)
 
 @bp_cu.route('/siguiente-id')
 def siguiente_id():
@@ -59,10 +65,14 @@ def nuevo():
                      nombre=nombre, descripcion=descripcion, actor=actor)
         db.session.add(cu)
         db.session.flush()
+        registrar_cu(cu.id, 'creacion', '', identificador, 'Caso de uso creado', forzar=True)
         if req_ids:
             reqs = Requerimiento.query.filter(Requerimiento.id.in_(req_ids),
                                               Requerimiento.proyecto_id == proyecto_id).all()
             cu.requerimientos.extend(reqs)
+            registrar_cu(cu.id, 'requerimientos asociados', '',
+                         ', '.join(sorted(r.identificador for r in reqs)), 'Caso de uso creado')
+            _anotar_asociacion(cu, reqs, asociado=True)
         db.session.commit()
         flash(f'Caso de uso {identificador} creado.', 'success')
         return redirect(url_for('casos_uso.detalle', id=cu.id))
@@ -89,9 +99,10 @@ def editar(id):
             _registrar_cambio(cu.id, campo, getattr(cu, campo), nuevo_val, desc_cambio)
             setattr(cu, campo, nuevo_val)
 
-        anteriores = sorted(r.identificador for r in cu.requerimientos)
+        reqs_previos = list(cu.requerimientos)
+        anteriores = sorted(r.identificador for r in reqs_previos)
         req_ids = request.form.getlist('requerimientos', type=int)
-        for r in list(cu.requerimientos):
+        for r in reqs_previos:
             cu.requerimientos.remove(r)
         reqs_nuevos = []
         if req_ids:
@@ -100,6 +111,11 @@ def editar(id):
             cu.requerimientos.extend(reqs_nuevos)
         nuevos = sorted(r.identificador for r in reqs_nuevos)
         _registrar_cambio(cu.id, 'requerimientos asociados', ', '.join(anteriores), ', '.join(nuevos), desc_cambio)
+        # El cambio tambien se ve desde cada requerimiento afectado, no solo
+        # desde el caso de uso.
+        ids_previos, ids_nuevos = {r.id for r in reqs_previos}, {r.id for r in reqs_nuevos}
+        _anotar_asociacion(cu, [r for r in reqs_nuevos if r.id not in ids_previos], asociado=True)
+        _anotar_asociacion(cu, [r for r in reqs_previos if r.id not in ids_nuevos], asociado=False)
 
         db.session.commit()
         flash('Caso de uso actualizado.', 'success')
@@ -110,6 +126,8 @@ def editar(id):
 def eliminar(id):
     cu = CasoUso.query.get_or_404(id)
     proyecto_id = cu.proyecto_id
+    _anotar_asociacion(cu, list(cu.requerimientos), asociado=False,
+                       motivo=f'Se eliminó el caso de uso {cu.identificador}')
     db.session.delete(cu)
     db.session.commit()
     flash('Caso de uso eliminado.', 'info')

@@ -2,6 +2,7 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash,
 from app import db
 from app.models import Requerimiento, Proyecto, HistorialCambio, Comentario
 from app.utils import now_peru, generar_identificador
+from app.historial import registrar_req, registrar_cu
 
 bp_reqs = Blueprint('requerimientos', __name__)
 
@@ -19,16 +20,19 @@ ORDENES = {
 }
 
 def _generar_identificador(proyecto_id, tipo):
-    existentes = [r.identificador for r in
-                  Requerimiento.query.filter_by(proyecto_id=proyecto_id, tipo=tipo).all()]
+    # Se miran TODOS los identificadores del proyecto, no solo los del mismo
+    # tipo: si un requerimiento quedo con un prefijo que no corresponde a su
+    # tipo (p. ej. un RNF-010 marcado como funcional), filtrar por tipo lo
+    # ignoraba, se volvia a generar RNF-010 y el guardado fallaba por la
+    # restriccion unica. generar_identificador ya filtra por prefijo.
+    existentes = [ident for (ident,) in
+                  db.session.query(Requerimiento.identificador).filter_by(proyecto_id=proyecto_id)]
     return generar_identificador(existentes, PREFIJOS_TIPO[tipo])
 
-def _registrar_cambio(req_id, campo, anterior, nuevo, desc=None):
-    if str(anterior or '') != str(nuevo or ''):
-        db.session.add(HistorialCambio(
-            requerimiento_id=req_id, campo_modificado=campo,
-            valor_anterior=str(anterior or ''), valor_nuevo=str(nuevo or ''),
-            descripcion=desc or f'Campo {campo} modificado'))
+def _prefijo_correcto(identificador, tipo):
+    return identificador.startswith(PREFIJOS_TIPO[tipo] + '-')
+
+_registrar_cambio = registrar_req
 
 @bp_reqs.route('/')
 def lista():
@@ -109,9 +113,15 @@ def editar(id):
     if request.method == 'POST':
         desc_cambio = request.form.get('descripcion_cambio', '').strip() or 'Actualización'
         nuevo_tipo = request.form.get('tipo', '')
+        if nuevo_tipo not in PREFIJOS_TIPO:
+            flash('Tipo de requerimiento inválido.', 'danger')
+            return redirect(url_for('requerimientos.editar', id=id))
         nueva_categoria = request.form.get('categoria') if nuevo_tipo == 'no_funcional' else None
         nuevo_identificador = req.identificador
-        if nuevo_tipo != req.tipo:
+        # Se reasigna al cambiar de tipo (RF-X <-> RNF-X) y tambien si el
+        # identificador actual no corresponde a su tipo: asi basta con volver a
+        # guardar un requerimiento que quedo desalineado para corregirlo.
+        if nuevo_tipo != req.tipo or not _prefijo_correcto(req.identificador, nuevo_tipo):
             nuevo_identificador = _generar_identificador(req.proyecto_id, nuevo_tipo)
         campos = {'tipo': nuevo_tipo, 'identificador': nuevo_identificador,
                   'descripcion': request.form.get('descripcion', '').strip(),
@@ -131,6 +141,18 @@ def eliminar(id):
     req = Requerimiento.query.get_or_404(id)
     proyecto_id = req.proyecto_id
     ident = req.identificador
+    # El historial del requerimiento se borra con el, asi que la eliminacion
+    # queda anotada en lo que SI sobrevive: los requerimientos relacionados y
+    # los casos de uso que lo tenian asociado.
+    for rel in req.relaciones_origen.all():
+        registrar_req(rel.requerimiento_destino_id, 'relación', f'{ident} {rel.tipo_relacion} (entrante)', '',
+                      f'Relación eliminada: se eliminó el requerimiento {ident}')
+    for rel in req.relaciones_destino.all():
+        registrar_req(rel.requerimiento_origen_id, 'relación', f'{rel.tipo_relacion} {ident}', '',
+                      f'Relación eliminada: se eliminó el requerimiento {ident}')
+    for cu in req.casos_uso.all():
+        registrar_cu(cu.id, 'requerimientos asociados', ident, '',
+                     f'Se eliminó el requerimiento {ident}')
     db.session.delete(req)
     db.session.commit()
     flash(f'Requerimiento {ident} eliminado.', 'info')
@@ -143,6 +165,7 @@ def comentar(id):
     autor = request.form.get('autor', 'Anónimo').strip() or 'Anónimo'
     if texto:
         db.session.add(Comentario(requerimiento_id=id, texto=texto, autor=autor))
+        registrar_req(id, 'comentario', '', texto, f'Comentario agregado por {autor}', forzar=True)
         db.session.commit()
         flash('Comentario agregado.', 'success')
     return redirect(url_for('requerimientos.detalle', id=id))

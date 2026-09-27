@@ -73,8 +73,12 @@ const tipoOriginal = '{{ req.tipo }}';
 const idOriginal = '{{ req.identificador }}';
 const proyectoIdActual = {{ req.proyecto_id }};
 
+const PREFIJOS = {funcional: 'RF-', no_funcional: 'RNF-'};
+
 function actualizarPreviewId() {
-    if (selTipo.value === tipoOriginal) {
+    // Tambien se reasigna si el identificador actual no corresponde a su tipo
+    // (el servidor hace lo mismo al guardar).
+    if (selTipo.value === tipoOriginal && idOriginal.startsWith(PREFIJOS[selTipo.value])) {
         previewIdentificador.value = idOriginal;
         avisoId.style.display = 'none';
         return;
@@ -91,5 +95,6 @@ selTipo.addEventListener('change', function(){
     document.getElementById('g_cat').style.display = this.value === 'no_funcional' ? '' : 'none';
     actualizarPreviewId();
 });
+actualizarPreviewId();
 </script>
 {% endblock %}
