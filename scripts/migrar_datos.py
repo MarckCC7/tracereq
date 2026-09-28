@@ -2,6 +2,7 @@
 
 Uso (desde la raíz del proyecto, con el venv activado):
     python scripts/migrar_datos.py "postgresql://postgres.xxxx:CLAVE@aws-0-....pooler.supabase.com:5432/postgres"
+o, sin argumento, con la URL en la variable SUPABASE_URL del archivo .env.
 
 Crea las tablas en el destino si no existen. Si el destino ya tiene datos, no hace nada.
 """
@@ -15,6 +16,12 @@ from app import create_app, db
 
 
 def normalizar(url):
+    url = url.strip()
+    if '?' in url:  # parámetros que solo entiende Prisma
+        base, query = url.split('?', 1)
+        query = '&'.join(p for p in query.split('&')
+                         if p and not p.startswith(('pgbouncer=', 'connection_limit=', 'pool_timeout=', 'schema=')))
+        url = base + ('?' + query if query else '')
     for prefijo, driver in (('postgres://', 'postgresql+psycopg2://'),
                             ('postgresql://', 'postgresql+psycopg2://'),
                             ('mysql://', 'mysql+pymysql://')):
@@ -27,10 +34,11 @@ def normalizar(url):
 
 
 def main():
-    if len(sys.argv) != 2:
+    app = create_app()  # también carga el .env
+    url = sys.argv[1] if len(sys.argv) == 2 else os.environ.get('SUPABASE_URL', '')
+    if not url:
         sys.exit(__doc__)
-    app = create_app()
-    destino = create_engine(normalizar(sys.argv[1]))
+    destino = create_engine(normalizar(url))
 
     with app.app_context():
         origen = db.engine
