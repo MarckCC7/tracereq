@@ -1,9 +1,32 @@
+from flask_login import UserMixin
+from werkzeug.security import generate_password_hash, check_password_hash
 from app import db
 from app.utils import now_peru
+
+
+class Usuario(UserMixin, db.Model):
+    __tablename__ = 'usuarios'
+    id = db.Column(db.Integer, primary_key=True)
+    nombre = db.Column(db.String(120), nullable=False)
+    email = db.Column(db.String(255), nullable=False, unique=True, index=True)
+    password_hash = db.Column(db.String(255))  # vacío si la cuenta solo usa Google
+    google_id = db.Column(db.String(64), unique=True, index=True)
+    avatar_url = db.Column(db.String(500))
+    fecha_creacion = db.Column(db.DateTime, default=now_peru)
+
+    proyectos = db.relationship('Proyecto', backref='usuario', lazy='dynamic')
+
+    def set_password(self, password):
+        self.password_hash = generate_password_hash(password)
+
+    def check_password(self, password):
+        return bool(self.password_hash) and check_password_hash(self.password_hash, password)
+
 
 class Proyecto(db.Model):
     __tablename__ = 'proyectos'
     id = db.Column(db.Integer, primary_key=True)
+    usuario_id = db.Column(db.Integer, db.ForeignKey('usuarios.id'), index=True)
     nombre = db.Column(db.String(150), nullable=False)
     descripcion = db.Column(db.Text)
     fecha_creacion = db.Column(db.DateTime, default=now_peru)

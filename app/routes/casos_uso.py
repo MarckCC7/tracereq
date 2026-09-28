@@ -3,6 +3,7 @@ from app import db
 from app.models import CasoUso, Proyecto, Requerimiento, HistorialCasoUso
 from app.utils import generar_identificador
 from app.historial import registrar_cu, registrar_req
+from app.permisos import mis_proyectos, validar_proyecto, mis_casos_uso, caso_uso_propio
 
 bp_cu = Blueprint('casos_uso', __name__)
 
@@ -29,15 +30,16 @@ def siguiente_id():
     proyecto_id = request.args.get('proyecto_id', type=int)
     if not proyecto_id:
         return jsonify({'identificador': None})
+    validar_proyecto(proyecto_id)
     return jsonify({'identificador': _generar_identificador(proyecto_id)})
 
 @bp_cu.route('/')
 def lista():
-    proyecto_id = request.args.get('proyecto_id', type=int)
-    proyectos = Proyecto.query.order_by(Proyecto.nombre).all()
-    query = CasoUso.query
+    proyecto_id = validar_proyecto(request.args.get('proyecto_id', type=int))
+    proyectos = mis_proyectos().order_by(Proyecto.nombre).all()
+    query = mis_casos_uso()
     if proyecto_id:
-        query = query.filter_by(proyecto_id=proyecto_id)
+        query = query.filter(CasoUso.proyecto_id == proyecto_id)
     casos = query.order_by(CasoUso.identificador).all()
     resumen = {'con_reqs': sum(1 for c in casos if c.requerimientos.count()),
                'actores': len({c.actor.strip().lower() for c in casos if c.actor and c.actor.strip()}),
@@ -47,10 +49,10 @@ def lista():
 
 @bp_cu.route('/nuevo', methods=['GET', 'POST'])
 def nuevo():
-    proyectos = Proyecto.query.order_by(Proyecto.nombre).all()
-    proyecto_id = request.args.get('proyecto_id', type=int)
+    proyectos = mis_proyectos().order_by(Proyecto.nombre).all()
+    proyecto_id = validar_proyecto(request.args.get('proyecto_id', type=int))
     if request.method == 'POST':
-        proyecto_id = request.form.get('proyecto_id', type=int)
+        proyecto_id = validar_proyecto(request.form.get('proyecto_id', type=int))
         nombre = request.form.get('nombre', '').strip()
         descripcion = request.form.get('descripcion', '').strip()
         actor = request.form.get('actor', '').strip()
@@ -82,13 +84,13 @@ def nuevo():
 
 @bp_cu.route('/<int:id>')
 def detalle(id):
-    cu = CasoUso.query.get_or_404(id)
+    cu = caso_uso_propio(id)
     historial = cu.historial.order_by(HistorialCasoUso.fecha.desc()).all()
     return render_template('casos_uso/detalle.html', cu=cu, historial=historial)
 
 @bp_cu.route('/<int:id>/editar', methods=['GET', 'POST'])
 def editar(id):
-    cu = CasoUso.query.get_or_404(id)
+    cu = caso_uso_propio(id)
     reqs_proy = Requerimiento.query.filter_by(proyecto_id=cu.proyecto_id, tipo='funcional').all()
     if request.method == 'POST':
         desc_cambio = request.form.get('descripcion_cambio', '').strip() or 'Actualización'
@@ -124,7 +126,7 @@ def editar(id):
 
 @bp_cu.route('/<int:id>/eliminar', methods=['POST'])
 def eliminar(id):
-    cu = CasoUso.query.get_or_404(id)
+    cu = caso_uso_propio(id)
     proyecto_id = cu.proyecto_id
     _anotar_asociacion(cu, list(cu.requerimientos), asociado=False,
                        motivo=f'Se eliminó el caso de uso {cu.identificador}')
@@ -135,8 +137,7 @@ def eliminar(id):
 
 @bp_cu.route('/reqs-por-proyecto')
 def reqs_por_proyecto():
-    from flask import jsonify
-    proyecto_id = request.args.get('proyecto_id', type=int)
+    proyecto_id = validar_proyecto(request.args.get('proyecto_id', type=int))
     reqs = []
     if proyecto_id:
         reqs = Requerimiento.query.filter_by(proyecto_id=proyecto_id, tipo='funcional').order_by(Requerimiento.identificador).all()

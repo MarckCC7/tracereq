@@ -1,11 +1,12 @@
 import csv, json, io
 from flask import Blueprint, request, Response
 from app.models import Proyecto, Requerimiento, CasoUso, Trazabilidad, HistorialCambio
+from app.permisos import proyecto_propio
 
 bp_export = Blueprint('exportar', __name__)
 
 def _datos(proyecto_id, con_historial=False):
-    proyecto = Proyecto.query.get_or_404(proyecto_id)
+    proyecto = proyecto_propio(proyecto_id)
     reqs = Requerimiento.query.filter_by(proyecto_id=proyecto_id).order_by(Requerimiento.identificador).all()
     casos = CasoUso.query.filter_by(proyecto_id=proyecto_id).order_by(CasoUso.identificador).all()
     req_ids = [r.id for r in reqs]

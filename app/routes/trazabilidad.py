@@ -2,6 +2,7 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash,
 from app import db
 from app.models import Trazabilidad, Requerimiento, Proyecto, CasoUso
 from app.historial import registrar_req
+from app.permisos import mis_proyectos, validar_proyecto, mis_requerimientos, relacion_propia
 
 
 def _anotar_relacion(origen, destino, tipo, creada):
@@ -18,10 +19,10 @@ TIPOS = ['depende_de', 'refina', 'contradice']
 
 @bp_traz.route('/nueva', methods=['GET', 'POST'])
 def nueva():
-    proyectos = Proyecto.query.order_by(Proyecto.nombre).all()
-    proyecto_id = request.args.get('proyecto_id', type=int)
+    proyectos = mis_proyectos().order_by(Proyecto.nombre).all()
+    proyecto_id = validar_proyecto(request.args.get('proyecto_id', type=int))
     if request.method == 'POST':
-        proyecto_id = request.form.get('proyecto_id', type=int)
+        proyecto_id = validar_proyecto(request.form.get('proyecto_id', type=int))
         origen_id  = request.form.get('origen_id', type=int)
         destino_id = request.form.get('destino_id', type=int)
         tipo       = request.form.get('tipo_relacion', '')
@@ -30,6 +31,10 @@ def nueva():
         if not origen_id or not destino_id: errores.append('Debes seleccionar ambos requerimientos.')
         elif origen_id == destino_id: errores.append('Un requerimiento no puede relacionarse consigo mismo.')
         if tipo not in TIPOS: errores.append('Tipo de relación inválido.')
+        if not errores and mis_requerimientos().filter(
+                Requerimiento.id.in_([origen_id, destino_id]),
+                Requerimiento.proyecto_id == proyecto_id).count() != 2:
+            errores.append('Los requerimientos deben pertenecer al proyecto seleccionado.')
         if not errores and Trazabilidad.query.filter_by(
                 requerimiento_origen_id=origen_id, requerimiento_destino_id=destino_id).first():
             errores.append('Ya existe una relación entre estos requerimientos.')
@@ -50,7 +55,7 @@ def nueva():
 
 @bp_traz.route('/eliminar/<int:id>', methods=['POST'])
 def eliminar(id):
-    rel = Trazabilidad.query.get_or_404(id)
+    rel = relacion_propia(id)
     proyecto_id = rel.origen.proyecto_id
     _anotar_relacion(rel.origen, rel.destino, rel.tipo_relacion, creada=False)
     db.session.delete(rel)
@@ -60,8 +65,8 @@ def eliminar(id):
 
 @bp_traz.route('/matriz')
 def matriz():
-    proyecto_id = request.args.get('proyecto_id', type=int)
-    proyectos = Proyecto.query.order_by(Proyecto.nombre).all()
+    proyecto_id = validar_proyecto(request.args.get('proyecto_id', type=int))
+    proyectos = mis_proyectos().order_by(Proyecto.nombre).all()
     reqs, casos, matriz_data, contradicciones, relaciones_traz = [], [], {}, [], []
     if proyecto_id:
         # La matriz de cobertura solo aplica a requerimientos funcionales: los casos
@@ -83,13 +88,13 @@ def matriz():
 
 @bp_traz.route('/grafo')
 def grafo():
-    proyectos = Proyecto.query.order_by(Proyecto.nombre).all()
-    proyecto_id = request.args.get('proyecto_id', type=int)
+    proyectos = mis_proyectos().order_by(Proyecto.nombre).all()
+    proyecto_id = validar_proyecto(request.args.get('proyecto_id', type=int))
     return render_template('trazabilidad/grafo.html', proyectos=proyectos, proyecto_id=proyecto_id)
 
 @bp_traz.route('/grafo-datos')
 def grafo_datos():
-    proyecto_id = request.args.get('proyecto_id', type=int)
+    proyecto_id = validar_proyecto(request.args.get('proyecto_id', type=int))
     nodes, edges = [], []
     if proyecto_id:
         reqs = Requerimiento.query.filter_by(proyecto_id=proyecto_id).all()

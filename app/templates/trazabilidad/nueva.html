@@ -58,10 +58,11 @@ document.getElementById('sel_proyecto').addEventListener('change', function() {
     fetch('/casos-uso/reqs-por-proyecto?proyecto_id=' + pid)
         .then(r => r.json())
         .then(data => {
-            const opts = '<option value="">- Seleccionar -</option>' +
-                data.reqs.map(r => '<option value="' + r.id + '">' + r.identificador + ' - ' + r.descripcion + '</option>').join('');
-            document.getElementById('sel_origen').innerHTML = opts;
-            document.getElementById('sel_destino').innerHTML = opts;
+            ['sel_origen', 'sel_destino'].forEach(function (id) {
+                const sel = document.getElementById(id);
+                sel.replaceChildren(new Option('- Seleccionar -', ''));
+                data.reqs.forEach(r => sel.add(new Option(r.identificador + ' - ' + r.descripcion, r.id)));
+            });
         });
 });
 </script>

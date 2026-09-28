@@ -77,9 +77,15 @@ selProyecto.addEventListener('change', function() {
         .then(data => {
             const c = document.getElementById('reqs-container');
             if (!data.reqs.length) { c.innerHTML = '<p class="text-muted" style="font-size:.875rem;padding:.5rem">Sin requerimientos funcionales.</p>'; return; }
-            c.innerHTML = data.reqs.map(r =>
-                '<label><input type="checkbox" name="requerimientos" value="' + r.id + '"><span><strong>' + r.identificador + '</strong> - ' + r.descripcion + '</span></label>'
-            ).join('');
+            // Se arma con el DOM (textContent): la descripción la escribe el usuario y no debe interpretarse como HTML.
+            c.replaceChildren(...data.reqs.map(r => {
+                const label = document.createElement('label');
+                const check = Object.assign(document.createElement('input'), { type: 'checkbox', name: 'requerimientos', value: r.id });
+                const texto = document.createElement('span');
+                texto.append(Object.assign(document.createElement('strong'), { textContent: r.identificador }), ' - ' + r.descripcion);
+                label.append(check, texto);
+                return label;
+            }));
         });
 });
 

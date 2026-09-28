@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>{% block title %}TraceReq{% endblock %} · TraceReq</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -53,6 +54,21 @@
                         <a href="{{ url_for('requerimientos.nuevo') }}"><i class="fas fa-list-ul"></i> Requerimiento</a>
                         <a href="{{ url_for('casos_uso.nuevo') }}"><i class="fas fa-users"></i> Caso de uso</a>
                         <a href="{{ url_for('trazabilidad.nueva') }}"><i class="fas fa-link"></i> Relación</a>
+                    </div>
+                </div>
+                <div class="dropdown">
+                    <button type="button" class="user-btn" data-dropdown-toggle aria-label="Mi cuenta">
+                        {% if current_user.avatar_url %}<img src="{{ current_user.avatar_url }}" alt="" referrerpolicy="no-referrer">
+                        {% else %}<span class="avatar">{{ current_user.nombre[:1] }}</span>{% endif %}
+                        <span class="who"><b>{{ current_user.nombre }}</b><small>{{ 'Google' if current_user.google_id else 'Cuenta TraceReq' }}</small></span>
+                        <i class="fas fa-chevron-down" style="font-size:.7rem;color:var(--muted)"></i>
+                    </button>
+                    <div class="dropdown-menu">
+                        <div class="dropdown-info"><b>{{ current_user.nombre }}</b>{{ current_user.email }}</div>
+                        <div class="dropdown-divider"></div>
+                        <form method="post" action="{{ url_for('auth.logout') }}">
+                            <button type="submit" class="danger"><i class="fas fa-arrow-right-from-bracket"></i> Cerrar sesión</button>
+                        </form>
                     </div>
                 </div>
             </div>

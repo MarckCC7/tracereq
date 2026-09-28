@@ -2,7 +2,9 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash,
 from app import db
 from app.models import Requerimiento, Proyecto, HistorialCambio, Comentario
 from app.utils import now_peru, generar_identificador
+from flask_login import current_user
 from app.historial import registrar_req, registrar_cu
+from app.permisos import mis_proyectos, validar_proyecto, mis_requerimientos, requerimiento_propio
 
 bp_reqs = Blueprint('requerimientos', __name__)
 
@@ -42,13 +44,14 @@ def lista():
     tipo = request.args.get('tipo', '')
     categoria = request.args.get('categoria', '')
     busqueda = request.args.get('q', '').strip()
-    proyectos = Proyecto.query.order_by(Proyecto.nombre).all()
-    query = Requerimiento.query
-    if proyecto_id: query = query.filter_by(proyecto_id=proyecto_id)
-    if estado:      query = query.filter_by(estado=estado)
-    if prioridad:   query = query.filter_by(prioridad=prioridad)
-    if tipo:        query = query.filter_by(tipo=tipo)
-    if categoria:   query = query.filter_by(categoria=categoria)
+    proyectos = mis_proyectos().order_by(Proyecto.nombre).all()
+    validar_proyecto(proyecto_id)
+    query = mis_requerimientos()
+    if proyecto_id: query = query.filter(Requerimiento.proyecto_id == proyecto_id)
+    if estado:      query = query.filter(Requerimiento.estado == estado)
+    if prioridad:   query = query.filter(Requerimiento.prioridad == prioridad)
+    if tipo:        query = query.filter(Requerimiento.tipo == tipo)
+    if categoria:   query = query.filter(Requerimiento.categoria == categoria)
     if busqueda:
         query = query.filter(db.or_(Requerimiento.identificador.ilike(f'%{busqueda}%'),
                                     Requerimiento.descripcion.ilike(f'%{busqueda}%')))
@@ -66,14 +69,15 @@ def siguiente_id():
     tipo = request.args.get('tipo', '')
     if not proyecto_id or tipo not in PREFIJOS_TIPO:
         return jsonify({'identificador': None})
+    validar_proyecto(proyecto_id)
     return jsonify({'identificador': _generar_identificador(proyecto_id, tipo)})
 
 @bp_reqs.route('/nuevo', methods=['GET', 'POST'])
 def nuevo():
-    proyectos = Proyecto.query.order_by(Proyecto.nombre).all()
-    proyecto_id = request.args.get('proyecto_id', type=int)
+    proyectos = mis_proyectos().order_by(Proyecto.nombre).all()
+    proyecto_id = validar_proyecto(request.args.get('proyecto_id', type=int))
     if request.method == 'POST':
-        proyecto_id = request.form.get('proyecto_id', type=int)
+        proyecto_id = validar_proyecto(request.form.get('proyecto_id', type=int))
         tipo = request.form.get('tipo', '')
         descripcion = request.form.get('descripcion', '').strip()
         prioridad = request.form.get('prioridad', 'media')
@@ -98,7 +102,7 @@ def nuevo():
 
 @bp_reqs.route('/<int:id>')
 def detalle(id):
-    req = Requerimiento.query.get_or_404(id)
+    req = requerimiento_propio(id)
     historial = req.historial.order_by(HistorialCambio.fecha.desc()).all()
     comentarios = req.comentarios.order_by(Comentario.fecha_creacion.asc()).all()
     relaciones_orig = req.relaciones_origen.all()
@@ -108,8 +112,8 @@ def detalle(id):
 
 @bp_reqs.route('/<int:id>/editar', methods=['GET', 'POST'])
 def editar(id):
-    req = Requerimiento.query.get_or_404(id)
-    proyectos = Proyecto.query.all()
+    req = requerimiento_propio(id)
+    proyectos = mis_proyectos().all()
     if request.method == 'POST':
         desc_cambio = request.form.get('descripcion_cambio', '').strip() or 'Actualización'
         nuevo_tipo = request.form.get('tipo', '')
@@ -138,7 +142,7 @@ def editar(id):
 
 @bp_reqs.route('/<int:id>/eliminar', methods=['POST'])
 def eliminar(id):
-    req = Requerimiento.query.get_or_404(id)
+    req = requerimiento_propio(id)
     proyecto_id = req.proyecto_id
     ident = req.identificador
     # El historial del requerimiento se borra con el, asi que la eliminacion
@@ -160,9 +164,9 @@ def eliminar(id):
 
 @bp_reqs.route('/<int:id>/comentar', methods=['POST'])
 def comentar(id):
-    req = Requerimiento.query.get_or_404(id)
+    req = requerimiento_propio(id)
     texto = request.form.get('texto', '').strip()
-    autor = request.form.get('autor', 'Anónimo').strip() or 'Anónimo'
+    autor = current_user.nombre[:80]
     if texto:
         db.session.add(Comentario(requerimiento_id=id, texto=texto, autor=autor))
         registrar_req(id, 'comentario', '', texto, f'Comentario agregado por {autor}', forzar=True)
@@ -173,10 +177,11 @@ def comentar(id):
 @bp_reqs.route('/sin-cobertura')
 def sin_cobertura():
     proyecto_id = request.args.get('proyecto_id', type=int)
-    proyectos = Proyecto.query.order_by(Proyecto.nombre).all()
-    query = Requerimiento.query.filter(Requerimiento.tipo == 'funcional', ~Requerimiento.casos_uso.any())
+    proyectos = mis_proyectos().order_by(Proyecto.nombre).all()
+    validar_proyecto(proyecto_id)
+    query = mis_requerimientos().filter(Requerimiento.tipo == 'funcional', ~Requerimiento.casos_uso.any())
     if proyecto_id:
-        query = query.filter_by(proyecto_id=proyecto_id)
+        query = query.filter(Requerimiento.proyecto_id == proyecto_id)
     reqs = query.order_by(Requerimiento.identificador).all()
     return render_template('requerimientos/sin_cobertura.html', reqs=reqs, proyectos=proyectos, proyecto_id=proyecto_id)
 

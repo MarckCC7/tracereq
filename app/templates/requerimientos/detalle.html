@@ -115,15 +115,9 @@
     </div>
     {% else %}<p class="text-muted" style="margin-bottom:1rem">Sin comentarios todavía.</p>{% endif %}
     <form method="post" action="{{ url_for('requerimientos.comentar', id=req.id) }}" style="border-top:1px solid var(--border);padding-top:1rem">
-        <div class="form-grid comment-grid">
-            <div class="form-group">
-                <label>Tu nombre</label>
-                <input type="text" name="autor" class="form-control" placeholder="Anónimo">
-            </div>
-            <div class="form-group">
-                <label>Comentario *</label>
-                <textarea name="texto" class="form-control" rows="2" required style="resize:vertical"></textarea>
-            </div>
+        <div class="form-group">
+            <label>Comentar como {{ current_user.nombre }}</label>
+            <textarea name="texto" class="form-control" rows="2" required style="resize:vertical"></textarea>
         </div>
         <button type="submit" class="btn btn-primary btn-sm"><i class="far fa-paper-plane"></i> Comentar</button>
     </form>

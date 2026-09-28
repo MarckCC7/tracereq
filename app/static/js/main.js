@@ -90,3 +90,17 @@ document.addEventListener('input', function (e) {
     var counter = document.querySelector('[data-filter-count="' + sel + '"]');
     if (counter) counter.textContent = shown;
 });
+
+// Protección CSRF: todo formulario POST lleva el token de la sesión (el servidor rechaza los que no lo traen).
+(function () {
+    var meta = document.querySelector('meta[name="csrf-token"]');
+    if (!meta) return;
+    var agregar = function (form) {
+        if ((form.method || '').toLowerCase() !== 'post' || form.querySelector('input[name="csrf_token"]')) return;
+        var input = document.createElement('input');
+        input.type = 'hidden'; input.name = 'csrf_token'; input.value = meta.content;
+        form.appendChild(input);
+    };
+    document.querySelectorAll('form').forEach(agregar);
+    document.addEventListener('submit', function (e) { agregar(e.target); }, true);
+})();

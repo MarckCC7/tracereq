@@ -349,3 +349,32 @@ select.form-control { appearance: none; background-image: url("data:image/svg+xm
 .dropdown-menu .danger, .dropdown-menu .danger i { color: var(--red); }
 .dropdown-divider { border-top: 1px solid var(--border); margin: .3rem 0; }
 .dropdown-header { padding: .45rem .75rem .2rem; font-size: .66rem; text-transform: uppercase; letter-spacing: .06em; color: var(--subtle); font-weight: 700; }
+
+/* ---------- Acceso (login / registro) ---------- */
+.auth-body { background: var(--bg); }
+.auth-wrap { display: grid; grid-template-columns: minmax(300px, 440px) 1fr; min-height: 100vh; }
+.auth-side { background: linear-gradient(180deg, var(--sidebar-bg), var(--sidebar-bg-2)); color: #fff; padding: 2.5rem 2.2rem; display: flex; flex-direction: column; gap: 1.6rem; }
+.auth-side .brand { padding: 0; }
+.auth-side h2 { color: #fff; font-size: 1.6rem; line-height: 1.25; font-weight: 800; letter-spacing: -.02em; margin-top: auto; }
+.auth-side ul { list-style: none; display: flex; flex-direction: column; gap: .8rem; margin-bottom: auto; color: rgba(255,255,255,.8); font-size: .92rem; }
+.auth-side li i { width: 22px; color: #8fb3ff; }
+.auth-main { display: grid; place-items: center; padding: 2rem 1rem; }
+.auth-card { width: 100%; max-width: 440px; background: #fff; border: 1px solid var(--border); border-radius: 16px; box-shadow: var(--shadow); padding: 2rem; }
+.auth-card h1 { font-size: 1.6rem; }
+.auth-foot { text-align: center; margin-top: 1.2rem; font-size: .9rem; color: var(--muted); }
+.btn-google { width: 100%; background: #fff; color: var(--ink); border: 1px solid var(--border-2); padding: .7rem 1rem; }
+.btn-google:hover { background: #f7f9fd; }
+.auth-sep { display: flex; align-items: center; gap: .8rem; color: var(--subtle); font-size: .8rem; margin: 1.2rem 0; }
+.auth-sep::before, .auth-sep::after { content: ''; flex: 1; border-top: 1px solid var(--border); }
+@media (max-width: 800px) { .auth-wrap { grid-template-columns: 1fr; } .auth-side { display: none; } }
+
+/* ---------- Menú de usuario ---------- */
+.user-btn { display: flex; align-items: center; gap: .6rem; background: none; border: none; cursor: pointer; font: inherit; color: var(--ink); padding: .25rem .4rem; border-radius: 10px; }
+.user-btn:hover { background: #fff; }
+.user-btn img, .user-btn .avatar { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; font-size: .9rem; }
+.user-btn .who { text-align: left; line-height: 1.15; }
+.user-btn .who b { display: block; font-size: .88rem; }
+.user-btn .who small { color: var(--muted); font-size: .75rem; }
+.dropdown-info { padding: .6rem .75rem .5rem; font-size: .8rem; color: var(--muted); }
+.dropdown-info b { display: block; color: var(--ink); font-size: .88rem; }
+@media (max-width: 700px) { .user-btn .who { display: none; } .topbar-actions .btn span { display: none; } }

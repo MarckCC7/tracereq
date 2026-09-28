@@ -36,23 +36,29 @@ if os.environ.get('DB_SSL', '').lower() in ('1', 'true', 'yes') and _url.startsw
     _engine_options['connect_args'] = {'ssl_verify_cert': True, 'ssl_verify_identity': True}
 config.Config.SQLALCHEMY_ENGINE_OPTIONS = _engine_options
 
-from markupsafe import escape
 from sqlalchemy.engine import make_url
 from sqlalchemy.exc import OperationalError, ProgrammingError
-from app import create_app, db
+from werkzeug.middleware.proxy_fix import ProxyFix
+from app import create_app
+from app.esquema import asegurar_esquema
 
 app = create_app('development')
 app.config['DEBUG'] = False
+# Vercel atiende por HTTPS delante de la app: sin esto, url_for(_external=True)
+# generaría http:// y Google rechazaría la URL de retorno del login.
+app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
 
 _db_configurada = bool(os.environ.get('DATABASE_URL') or os.environ.get('DB_HOST'))
+# Con la clave por defecto cualquiera podría falsificar una sesión y entrar como otro usuario.
+_clave_segura = len(os.environ.get('SECRET_KEY', '')) >= 16 and os.environ.get('SECRET_KEY') != 'dev-key'
 
 if _db_configurada:
-    # Crea las tablas si aún no existen (no toca las que ya están).
+    # Crea tablas/columnas nuevas y protege las tablas en Supabase (idempotente).
     try:
         with app.app_context():
-            db.create_all()
-    except Exception as e:  # la app arranca igual y muestra el motivo en vez de caerse
-        print(f'[TraceReq] No se pudo inicializar la base de datos: {e!r}', file=sys.stderr)
+            asegurar_esquema()
+    except Exception as e:  # la app arranca igual; el detalle queda en los logs
+        print(f'[TraceReq] No se pudo preparar la base de datos: {e!r}', file=sys.stderr)
 
 
 def _pagina_error(titulo, detalle):
@@ -67,45 +73,43 @@ def _verificar_configuracion():
         return _pagina_error('Falta configurar la base de datos',
                              'Define la variable de entorno <code>DATABASE_URL</code> en Vercel '
                              '(Project Settings → Environment Variables) y vuelve a desplegar.')
+    if not _clave_segura:
+        return _pagina_error('Falta configurar SECRET_KEY',
+                             'Define en Vercel la variable <code>SECRET_KEY</code> con un texto aleatorio '
+                             'de al menos 16 caracteres y vuelve a desplegar.')
 
 
 def _pistas_url():
-    """Errores típicos al pegar la URL en Vercel."""
+    """Errores típicos al pegar la URL en Vercel (solo van a los logs)."""
     crudo = _url_original
     pistas = []
     if '[' in crudo or ']' in crudo or 'YOUR-PASSWORD' in crudo:
-        pistas.append('La URL todavía tiene <code>[YOUR-PASSWORD]</code> o corchetes: reemplázalos por tu contraseña, sin corchetes.')
+        pistas.append('la URL todavía tiene [YOUR-PASSWORD] o corchetes')
     if crudo != crudo.strip() or '"' in crudo or "'" in crudo or ' ' in crudo:
-        pistas.append('La URL tiene espacios o comillas: pégala sola, sin comillas.')
+        pistas.append('la URL tiene espacios o comillas')
     if 'db.' in crudo and '.supabase.co' in crudo:
-        pistas.append('Esa es la <i>Direct connection</i>, que no funciona en Vercel: usa la del <b>Session pooler</b> '
-                      '(host <code>...pooler.supabase.com</code>, puerto 5432).')
+        pistas.append('es la Direct connection (IPv6); usa la del pooler')
     if crudo.count('@') > 1:
-        pistas.append('Tu contraseña tiene <code>@</code>: cámbiala en Supabase por una solo con letras y números.')
-    if not crudo.strip().startswith(('postgres', 'mysql')):
-        pistas.append('La URL debe empezar con <code>postgresql://</code>: revisa que la hayas copiado completa.')
+        pistas.append('la contraseña tiene @')
     return pistas
 
 
 def _motivo(e):
     """Primera línea del error del driver, sin la contraseña."""
-    texto = str(getattr(e, 'orig', e)).strip().splitlines()[0] if str(getattr(e, 'orig', e)).strip() else repr(e)
+    texto = (str(getattr(e, 'orig', e)).strip().splitlines() or [repr(e)])[0]
     try:
         clave = make_url(os.environ.get('DATABASE_URL', '')).password
         if clave:
             texto = texto.replace(clave, '***')
     except Exception:
         pass
-    return escape(texto)
+    return texto
 
 
 @app.errorhandler(OperationalError)
 @app.errorhandler(ProgrammingError)
 def _error_bd(e):
-    print(f'[TraceReq] Error de base de datos: {e!r}', file=sys.stderr)
-    pistas = ''.join(f'<li>{p}</li>' for p in _pistas_url())
-    return _pagina_error('No se pudo conectar a la base de datos',
-                         f'<b>Motivo:</b> <code>{_motivo(e)}</code>'
-                         + (f'<ul style="margin-top:1rem">{pistas}</ul>' if pistas else '')
-                         + '<br><br>Corrige <code>DATABASE_URL</code> en Vercel (Settings → Environment Variables) '
-                           'y haz <b>Redeploy</b>.')
+    # El detalle (servidor, usuario, motivo) solo va a los logs de Vercel, nunca al visitante.
+    print(f'[TraceReq] Error de base de datos: {_motivo(e)} | pistas: {_pistas_url()}', file=sys.stderr)
+    return _pagina_error('Servicio no disponible por el momento',
+                         'No se pudo conectar a la base de datos. Inténtalo de nuevo en unos minutos.')
