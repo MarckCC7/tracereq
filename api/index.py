@@ -14,6 +14,13 @@ for _prefijo, _driver in (('mysql://', 'mysql+pymysql://'),
     if _url.startswith(_prefijo):
         _url = _driver + _url[len(_prefijo):]
         break
+# Supabase muestra la URL del pooler con ?pgbouncer=true (y otros parámetros solo de Prisma)
+# que psycopg2 rechaza: se quitan (el pooler funciona igual sin ellos).
+_SOLO_PRISMA = ('pgbouncer=', 'connection_limit=', 'pool_timeout=', 'schema=')
+if '?' in _url:
+    _base, _query = _url.split('?', 1)
+    _query = '&'.join(p for p in _query.split('&') if p and not p.startswith(_SOLO_PRISMA))
+    _url = _base + ('?' + _query if _query else '')
 # Supabase (y la mayoría de Postgres en la nube) exige SSL.
 if _url.startswith('postgresql') and 'sslmode=' not in _url:
     _url += ('&' if '?' in _url else '?') + 'sslmode=require'
@@ -70,8 +77,6 @@ def _pistas_url():
         pistas.append('La URL todavía tiene <code>[YOUR-PASSWORD]</code> o corchetes: reemplázalos por tu contraseña, sin corchetes.')
     if crudo != crudo.strip() or '"' in crudo or "'" in crudo or ' ' in crudo:
         pistas.append('La URL tiene espacios o comillas: pégala sola, sin comillas.')
-    if 'pgbouncer=' in crudo:
-        pistas.append('Quita <code>?pgbouncer=true</code> y usa la URL del puerto <b>5432</b> (Session pooler).')
     if 'db.' in crudo and '.supabase.co' in crudo:
         pistas.append('Esa es la <i>Direct connection</i>, que no funciona en Vercel: usa la del <b>Session pooler</b> '
                       '(host <code>...pooler.supabase.com</code>, puerto 5432).')
