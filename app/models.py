@@ -17,10 +17,10 @@ class Requerimiento(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     proyecto_id = db.Column(db.Integer, db.ForeignKey('proyectos.id'), nullable=False)
     identificador = db.Column(db.String(30), nullable=False)
-    tipo = db.Column(db.Enum('funcional', 'no_funcional'), nullable=False)
+    tipo = db.Column(db.Enum('funcional', 'no_funcional', name='tipo_requerimiento'), nullable=False)
     descripcion = db.Column(db.Text, nullable=False)
-    prioridad = db.Column(db.Enum('alta', 'media', 'baja'), nullable=False, default='media')
-    estado = db.Column(db.Enum('pendiente', 'activo', 'completado', 'cancelado'), nullable=False, default='pendiente')
+    prioridad = db.Column(db.Enum('alta', 'media', 'baja', name='prioridad_requerimiento'), nullable=False, default='media')
+    estado = db.Column(db.Enum('pendiente', 'activo', 'completado', 'cancelado', name='estado_requerimiento'), nullable=False, default='pendiente')
     categoria = db.Column(db.String(80))  # para no funcionales: rendimiento, seguridad, usabilidad, etc.
     fecha_creacion = db.Column(db.DateTime, default=now_peru)
     fecha_actualizacion = db.Column(db.DateTime, default=now_peru, onupdate=now_peru)
@@ -83,7 +83,7 @@ class Trazabilidad(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     requerimiento_origen_id = db.Column(db.Integer, db.ForeignKey('requerimientos.id'), nullable=False)
     requerimiento_destino_id = db.Column(db.Integer, db.ForeignKey('requerimientos.id'), nullable=False)
-    tipo_relacion = db.Column(db.Enum('depende_de', 'refina', 'contradice'), nullable=False)
+    tipo_relacion = db.Column(db.Enum('depende_de', 'refina', 'contradice', name='tipo_relacion'), nullable=False)
     descripcion = db.Column(db.String(255))
     fecha_creacion = db.Column(db.DateTime, default=now_peru)
 

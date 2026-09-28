@@ -4,17 +4,27 @@ import sys
 # Permite importar el paquete `app` y `config` desde la raíz del proyecto.
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-# Muchos proveedores entregan la URL como mysql://...; SQLAlchemy necesita el driver explícito.
+# Los proveedores entregan la URL como mysql://, postgres:// o postgresql://;
+# SQLAlchemy necesita el driver explícito.
 _url = os.environ.get('DATABASE_URL', '').strip()
-if _url.startswith('mysql://'):
-    os.environ['DATABASE_URL'] = 'mysql+pymysql://' + _url[len('mysql://'):]
+for _prefijo, _driver in (('mysql://', 'mysql+pymysql://'),
+                          ('postgres://', 'postgresql+psycopg2://'),
+                          ('postgresql://', 'postgresql+psycopg2://')):
+    if _url.startswith(_prefijo):
+        _url = _driver + _url[len(_prefijo):]
+        break
+# Supabase (y la mayoría de Postgres en la nube) exige SSL.
+if _url.startswith('postgresql') and 'sslmode=' not in _url:
+    _url += ('&' if '?' in _url else '?') + 'sslmode=require'
+if _url:
+    os.environ['DATABASE_URL'] = _url
 
 import config
 
 # En serverless las conexiones se cortan entre invocaciones: se verifican antes de usarlas.
 _engine_options = {'pool_pre_ping': True, 'pool_recycle': 280}
-# Bases en la nube (Aiven, TiDB, PlanetScale...) suelen exigir SSL: activarlo con DB_SSL=true.
-if os.environ.get('DB_SSL', '').lower() in ('1', 'true', 'yes'):
+# MySQL en la nube (Aiven, TiDB...) suele exigir SSL: activarlo con DB_SSL=true.
+if os.environ.get('DB_SSL', '').lower() in ('1', 'true', 'yes') and _url.startswith('mysql'):
     _engine_options['connect_args'] = {'ssl_verify_cert': True, 'ssl_verify_identity': True}
 config.Config.SQLALCHEMY_ENGINE_OPTIONS = _engine_options
 
