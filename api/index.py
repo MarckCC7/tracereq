@@ -6,7 +6,8 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # Los proveedores entregan la URL como mysql://, postgres:// o postgresql://;
 # SQLAlchemy necesita el driver explícito.
-_url = os.environ.get('DATABASE_URL', '').strip()
+_url_original = os.environ.get('DATABASE_URL', '')  # tal cual se pegó, para diagnosticar
+_url = _url_original.strip()
 for _prefijo, _driver in (('mysql://', 'mysql+pymysql://'),
                           ('postgres://', 'postgresql+psycopg2://'),
                           ('postgresql://', 'postgresql+psycopg2://')):
@@ -28,6 +29,8 @@ if os.environ.get('DB_SSL', '').lower() in ('1', 'true', 'yes') and _url.startsw
     _engine_options['connect_args'] = {'ssl_verify_cert': True, 'ssl_verify_identity': True}
 config.Config.SQLALCHEMY_ENGINE_OPTIONS = _engine_options
 
+from markupsafe import escape
+from sqlalchemy.engine import make_url
 from sqlalchemy.exc import OperationalError, ProgrammingError
 from app import create_app, db
 
@@ -59,11 +62,45 @@ def _verificar_configuracion():
                              '(Project Settings → Environment Variables) y vuelve a desplegar.')
 
 
+def _pistas_url():
+    """Errores típicos al pegar la URL en Vercel."""
+    crudo = _url_original
+    pistas = []
+    if '[' in crudo or ']' in crudo or 'YOUR-PASSWORD' in crudo:
+        pistas.append('La URL todavía tiene <code>[YOUR-PASSWORD]</code> o corchetes: reemplázalos por tu contraseña, sin corchetes.')
+    if crudo != crudo.strip() or '"' in crudo or "'" in crudo or ' ' in crudo:
+        pistas.append('La URL tiene espacios o comillas: pégala sola, sin comillas.')
+    if 'pgbouncer=' in crudo:
+        pistas.append('Quita <code>?pgbouncer=true</code> y usa la URL del puerto <b>5432</b> (Session pooler).')
+    if 'db.' in crudo and '.supabase.co' in crudo:
+        pistas.append('Esa es la <i>Direct connection</i>, que no funciona en Vercel: usa la del <b>Session pooler</b> '
+                      '(host <code>...pooler.supabase.com</code>, puerto 5432).')
+    if crudo.count('@') > 1:
+        pistas.append('Tu contraseña tiene <code>@</code>: cámbiala en Supabase por una solo con letras y números.')
+    if not crudo.strip().startswith(('postgres', 'mysql')):
+        pistas.append('La URL debe empezar con <code>postgresql://</code>: revisa que la hayas copiado completa.')
+    return pistas
+
+
+def _motivo(e):
+    """Primera línea del error del driver, sin la contraseña."""
+    texto = str(getattr(e, 'orig', e)).strip().splitlines()[0] if str(getattr(e, 'orig', e)).strip() else repr(e)
+    try:
+        clave = make_url(os.environ.get('DATABASE_URL', '')).password
+        if clave:
+            texto = texto.replace(clave, '***')
+    except Exception:
+        pass
+    return escape(texto)
+
+
 @app.errorhandler(OperationalError)
 @app.errorhandler(ProgrammingError)
 def _error_bd(e):
     print(f'[TraceReq] Error de base de datos: {e!r}', file=sys.stderr)
+    pistas = ''.join(f'<li>{p}</li>' for p in _pistas_url())
     return _pagina_error('No se pudo conectar a la base de datos',
-                         'Revisa <code>DATABASE_URL</code> (usuario, clave, host, puerto y nombre de la base), '
-                         'que la base acepte conexiones externas y, si tu proveedor exige SSL, '
-                         'agrega la variable <code>DB_SSL=true</code>. El detalle está en los logs de Vercel.')
+                         f'<b>Motivo:</b> <code>{_motivo(e)}</code>'
+                         + (f'<ul style="margin-top:1rem">{pistas}</ul>' if pistas else '')
+                         + '<br><br>Corrige <code>DATABASE_URL</code> en Vercel (Settings → Environment Variables) '
+                           'y haz <b>Redeploy</b>.')
